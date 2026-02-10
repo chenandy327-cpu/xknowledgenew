@@ -1,0 +1,77 @@
+
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import Sidebar from './components/Sidebar';
+import LoginPage from './pages/LoginPage';
+import DiscoveryPage from './pages/DiscoveryPage';
+import GroupPage from './pages/GroupPage';
+import LocalPage from './pages/LocalPage';
+import CoursePage from './pages/CoursePage';
+import MessagePage from './pages/MessagePage';
+import ProfilePage from './pages/ProfilePage';
+import CreateModal from './components/CreateModal';
+import { AppTheme } from './types';
+
+interface AppContextType {
+  theme: AppTheme;
+  toggleTheme: () => void;
+  isLoggedIn: boolean;
+  login: () => void;
+  logout: () => void;
+}
+
+const AppContext = createContext<AppContextType | undefined>(undefined);
+
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
+};
+
+const App: React.FC = () => {
+  const [theme, setTheme] = useState<AppTheme>(AppTheme.LIGHT);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const toggleTheme = () => {
+    const newTheme = theme === AppTheme.LIGHT ? AppTheme.DARK : AppTheme.LIGHT;
+    setTheme(newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === AppTheme.DARK);
+  };
+
+  const login = () => setIsLoggedIn(true);
+  const logout = () => setIsLoggedIn(false);
+
+  return (
+    <AppContext.Provider value={{ theme, toggleTheme, isLoggedIn, login, logout }}>
+      <HashRouter>
+        <div className="flex min-h-screen">
+          {isLoggedIn && <Sidebar onOpenCreate={() => setIsCreateModalOpen(true)} />}
+          <main className={`flex-1 ${isLoggedIn ? 'ml-20 lg:ml-64' : ''}`}>
+            <Routes>
+              {!isLoggedIn ? (
+                <>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="*" element={<Navigate to="/login" replace />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/" element={<DiscoveryPage />} />
+                  <Route path="/groups" element={<GroupPage />} />
+                  <Route path="/local" element={<LocalPage />} />
+                  <Route path="/courses" element={<CoursePage />} />
+                  <Route path="/messages" element={<MessagePage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </>
+              )}
+            </Routes>
+          </main>
+        </div>
+        {isCreateModalOpen && <CreateModal onClose={() => setIsCreateModalOpen(false)} />}
+      </HashRouter>
+    </AppContext.Provider>
+  );
+};
+
+export default App;

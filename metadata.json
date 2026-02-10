@@ -1,0 +1,9 @@
+{
+  "name": "xSquared (x²) Knowledge Nebula",
+  "description": "A comprehensive knowledge sharing platform featuring 3D discovery planets, local event mapping, course management with learning heatmaps, and a social check-in calendar.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
