@@ -15,20 +15,25 @@ const mockData = {
       user_id: '1',
       email: 'explorer@knowledge.art',
       name: 'Knowledge Explorer',
-      avatar: 'https://picsum.photos/id/1005/100/100',
-      password: 'password'
+      avatar: 'https://picsum.photos/id/1005/100/100'
+      // 注意：不在前端存储密码
     },
     'admin@example.com': {
       user_id: '2',
       email: 'admin@example.com',
       name: 'Admin User',
-      avatar: 'https://picsum.photos/id/100/100/100',
-      password: 'password'
+      avatar: 'https://picsum.photos/id/100/100/100'
+      // 注意：不在前端存储密码
     }
   },
   tokens: {
     'explorer@knowledge.art': 'mock-token-12345',
     'admin@example.com': 'mock-token-admin-12345'
+  },
+  // 密码验证（仅用于模拟，实际应在后端验证）
+  mockPasswords: {
+    'explorer@knowledge.art': 'password',
+    'admin@example.com': 'password'
   },
   messages: [
     {
@@ -136,6 +141,40 @@ const mockData = {
       created_at: new Date(Date.now() - 86400000).toISOString(),
       user_id: '2'
     }
+  ],
+  logs: [
+    {
+      id: '1',
+      user: 'Knowledge Explorer',
+      action: 'User Authentication',
+      description: 'User logged in',
+      timestamp: new Date().toISOString(),
+      ip: '192.168.1.1'
+    },
+    {
+      id: '2',
+      user: 'Admin User',
+      action: 'Content Management',
+      description: 'Created new content: Introduction to Generative AI',
+      timestamp: new Date().toISOString(),
+      ip: '192.168.1.2'
+    },
+    {
+      id: '3',
+      user: 'Admin User',
+      action: 'System Settings',
+      description: 'Updated backup settings',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      ip: '192.168.1.2'
+    },
+    {
+      id: '4',
+      user: 'Knowledge Explorer',
+      action: 'Content Interaction',
+      description: 'Viewed content: Quantum Computing Fundamentals',
+      timestamp: new Date(Date.now() - 7200000).toISOString(),
+      ip: '192.168.1.1'
+    }
   ]
 };
 
@@ -196,9 +235,18 @@ class ApiService {
       setTimeout(() => {
         try {
           if (endpoint.includes('/auth/login')) {
+            if (!options.body) {
+              reject(new Error('Invalid request: missing body'));
+              return;
+            }
             const body = JSON.parse(options.body as string);
+            if (!body.email || !body.password) {
+              reject(new Error('Invalid request: missing email or password'));
+              return;
+            }
             const user = mockData.users[body.email];
-            if (user && user.password === body.password) {
+            const expectedPassword = mockData.mockPasswords[body.email];
+            if (user && expectedPassword === body.password) {
               resolve({
                 access_token: mockData.tokens[body.email],
                 user_id: user.user_id,
@@ -209,7 +257,15 @@ class ApiService {
               reject(new Error('Invalid credentials'));
             }
           } else if (endpoint.includes('/auth/register')) {
+            if (!options.body) {
+              reject(new Error('Invalid request: missing body'));
+              return;
+            }
             const body = JSON.parse(options.body as string);
+            if (!body.email || !body.password || !body.name) {
+              reject(new Error('Invalid request: missing required fields'));
+              return;
+            }
             // 检查邮箱是否已存在
             if (mockData.users[body.email]) {
               reject(new Error('Email already exists'));
@@ -218,11 +274,12 @@ class ApiService {
               user_id: Date.now().toString(),
               email: body.email,
               name: body.name,
-              avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
-              password: body.password
+              avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`
+              // 注意：不在前端存储密码
             };
             mockData.users[body.email] = newUser;
             mockData.tokens[body.email] = `mock-token-${Date.now()}`;
+            mockData.mockPasswords[body.email] = body.password;
             resolve({
               access_token: mockData.tokens[body.email],
               user_id: newUser.user_id,
@@ -255,7 +312,15 @@ class ApiService {
             resolve(mockData.hotChats as T);
           } else if (endpoint.includes('/content') && options.method === 'POST') {
             // 创建内容
+            if (!options.body) {
+              reject(new Error('Invalid request: missing body'));
+              return;
+            }
             const body = JSON.parse(options.body as string);
+            if (!body.title) {
+              reject(new Error('Invalid request: missing title'));
+              return;
+            }
             const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
             const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
             
@@ -305,15 +370,147 @@ class ApiService {
             } else {
               reject(new Error('无效的课程ID'));
             }
+          } else if (endpoint.includes('/courses') && options.method === 'POST') {
+            // 创建课程
+            if (!options.body) {
+              reject(new Error('Invalid request: missing body'));
+              return;
+            }
+            const body = JSON.parse(options.body as string);
+            if (!body.title) {
+              reject(new Error('Invalid request: missing title'));
+              return;
+            }
+            const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+            const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+            
+            const newCourse = {
+              id: Date.now().toString(),
+              title: body.title,
+              description: body.description || '',
+              instructor: body.instructor || currentUser.name,
+              instructorAvatar: currentUser.avatar,
+              duration: body.duration || '10 hours',
+              level: body.level || 'Beginner',
+              category: body.category || 'Other',
+              image: body.cover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
+              created_at: new Date().toISOString(),
+              user_id: currentUser.user_id
+            };
+            
+            mockData.courses.unshift(newCourse);
+            resolve(newCourse as T);
+          } else if (endpoint.includes('/courses') && options.method === 'PUT') {
+            // 编辑课程
+            const courseId = endpoint.split('/').pop();
+            if (courseId) {
+              const courseIndex = mockData.courses.findIndex(item => item.id === courseId);
+              if (courseIndex !== -1) {
+                if (!options.body) {
+                  reject(new Error('Invalid request: missing body'));
+                  return;
+                }
+                const body = JSON.parse(options.body as string);
+                mockData.courses[courseIndex] = {
+                  ...mockData.courses[courseIndex],
+                  ...body,
+                  image: body.cover || mockData.courses[courseIndex].image
+                };
+                resolve(mockData.courses[courseIndex] as T);
+              } else {
+                reject(new Error('课程不存在'));
+              }
+            } else {
+              reject(new Error('无效的课程ID'));
+            }
           } else if (endpoint.includes('/courses')) {
             // 获取课程
             resolve(mockData.courses as T);
+          } else if (endpoint.includes('/users') && options.method === 'DELETE') {
+            // 删除用户
+            const userId = endpoint.split('/').pop();
+            if (userId) {
+              // 从mockData.users中删除用户
+              const userEmail = Object.keys(mockData.users).find(email => mockData.users[email].user_id === userId);
+              if (userEmail) {
+                delete mockData.users[userEmail];
+                delete mockData.tokens[userEmail];
+                delete mockData.mockPasswords[userEmail];
+                // 从好友列表中删除
+                mockData.friends = mockData.friends.filter(friend => friend.id !== userId);
+                resolve({ success: true, message: '用户删除成功' } as T);
+              } else {
+                reject(new Error('用户不存在'));
+              }
+            } else {
+              reject(new Error('无效的用户ID'));
+            }
+          } else if (endpoint.includes('/users') && options.method === 'PUT') {
+            // 编辑用户
+            const userId = endpoint.split('/').pop();
+            if (userId) {
+              const userEmail = Object.keys(mockData.users).find(email => mockData.users[email].user_id === userId);
+              if (userEmail) {
+                if (!options.body) {
+                  reject(new Error('Invalid request: missing body'));
+                  return;
+                }
+                const body = JSON.parse(options.body as string);
+                // 分离密码和其他用户信息
+                const { password, ...userData } = body;
+                // 更新用户信息
+                mockData.users[userEmail] = {
+                  ...mockData.users[userEmail],
+                  ...userData
+                };
+                // 如果提供了密码，更新密码
+                if (password) {
+                  mockData.mockPasswords[userEmail] = password;
+                }
+                resolve(mockData.users[userEmail] as T);
+              } else {
+                reject(new Error('用户不存在'));
+              }
+            } else {
+              reject(new Error('无效的用户ID'));
+            }
+          } else if (endpoint.includes('/content') && options.method === 'PUT') {
+            // 编辑内容
+            const contentId = endpoint.split('/').pop();
+            if (contentId) {
+              const contentIndex = mockData.content.findIndex(item => item.id === contentId);
+              if (contentIndex !== -1) {
+                if (!options.body) {
+                  reject(new Error('Invalid request: missing body'));
+                  return;
+                }
+                const body = JSON.parse(options.body as string);
+                mockData.content[contentIndex] = {
+                  ...mockData.content[contentIndex],
+                  ...body,
+                  content: body.content || mockData.content[contentIndex].content,
+                  image: body.cover || mockData.content[contentIndex].image
+                };
+                resolve(mockData.content[contentIndex] as T);
+              } else {
+                reject(new Error('内容不存在'));
+              }
+            } else {
+              reject(new Error('无效的内容ID'));
+            }
           } else {
             // 默认返回空对象
             resolve({} as T);
           }
         } catch (error) {
-          reject(error);
+          console.error('Mock data error:', error);
+          if (error instanceof SyntaxError) {
+            reject(new Error('Invalid request: malformed JSON'));
+          } else if (error instanceof Error) {
+            reject(error);
+          } else {
+            reject(new Error('Internal server error'));
+          }
         }
       }, 300); // 模拟网络延迟
     });
@@ -393,40 +590,16 @@ class ApiService {
 
   async addFriend(email: string) {
     if (USE_MOCK_DATA) {
-      // 检查好友是否已存在
-      const existingFriend = mockData.friends.find(friend => friend.name === email.split('@')[0]);
-      if (existingFriend) {
-        return Promise.resolve(existingFriend);
-      }
-      
+      // 模拟添加好友
       const newFriend = {
         id: Date.now().toString(),
         name: email.split('@')[0],
-        avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
-        lastMessage: '',
+        avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/100/100`,
+        lastMessage: '新的好友关系已建立',
         lastMessageTime: new Date().toISOString(),
         isOnline: true
       };
-      
-      // 添加到好友列表
       mockData.friends.push(newFriend);
-      
-      // 创建一个初始消息，模拟好友请求被接受
-      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
-      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
-      
-      const welcomeMessage = {
-        id: Date.now().toString(),
-        senderId: newFriend.id,
-        senderName: newFriend.name,
-        senderAvatar: newFriend.avatar,
-        content: `Hi! I'm ${newFriend.name}. Nice to meet you!`,
-        timestamp: new Date().toISOString(),
-        isRead: false
-      };
-      
-      mockData.messages.push(welcomeMessage);
-      
       return Promise.resolve(newFriend);
     }
     return this.request('/friends/add', {
@@ -435,61 +608,105 @@ class ApiService {
     });
   }
 
-  // User API
-  async getCurrentUser() {
-    return this.request('/users/me');
+  // Data Backup API
+  async backupData() {
+    if (USE_MOCK_DATA) {
+      // 模拟数据备份
+      const backupData = {
+        users: mockData.users,
+        mockPasswords: mockData.mockPasswords,
+        tokens: mockData.tokens,
+        messages: mockData.messages,
+        friends: mockData.friends,
+        content: mockData.content,
+        courses: mockData.courses,
+        hotspots: mockData.hotspots,
+        hotChats: mockData.hotChats,
+        backupTime: new Date().toISOString()
+      };
+      // 将备份数据转换为JSON字符串
+      const backupString = JSON.stringify(backupData, null, 2);
+      // 创建下载链接
+      const blob = new Blob([backupString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return Promise.resolve({ success: true, message: '数据备份成功' });
+    }
+    return this.request('/backup', {
+      method: 'GET'
+    });
   }
 
-  async getUser(userId: string) {
-    return this.request(`/users/${userId}`);
-  }
-
-  async updateCurrentUser(data: {
-    name?: string;
-    avatar?: string;
-  }) {
-    return this.request('/users/me', {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  async restoreData(backupFile: File) {
+    if (USE_MOCK_DATA) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const backupData = JSON.parse(e.target?.result as string);
+            // 恢复数据
+            if (backupData.users) mockData.users = backupData.users;
+            if (backupData.mockPasswords) mockData.mockPasswords = backupData.mockPasswords;
+            if (backupData.tokens) mockData.tokens = backupData.tokens;
+            if (backupData.messages) mockData.messages = backupData.messages;
+            if (backupData.friends) mockData.friends = backupData.friends;
+            if (backupData.content) mockData.content = backupData.content;
+            if (backupData.courses) mockData.courses = backupData.courses;
+            if (backupData.hotspots) mockData.hotspots = backupData.hotspots;
+            if (backupData.hotChats) mockData.hotChats = backupData.hotChats;
+            resolve({ success: true, message: '数据恢复成功' });
+          } catch (error) {
+            reject(new Error('无效的备份文件'));
+          }
+        };
+        reader.onerror = () => {
+          reject(new Error('文件读取失败'));
+        };
+        reader.readAsText(backupFile);
+      });
+    }
+    return this.request('/restore', {
+      method: 'POST',
+      body: backupFile
     });
   }
 
   // Content API
-  async getContent(category?: string, limit: number = 10, offset: number = 0) {
+  async getContent() {
     if (USE_MOCK_DATA) {
-      // 直接返回模拟数据
-      let content = [...mockData.content];
-      if (category) {
-        content = content.filter(item => item.category === category);
-      }
-      return Promise.resolve(content.slice(offset, offset + limit));
+      return Promise.resolve(mockData.content);
     }
-    
-    const params = new URLSearchParams();
-    if (category) params.append('category', category);
-    params.append('limit', limit.toString());
-    params.append('offset', offset.toString());
-    return this.request(`/content?${params.toString()}`);
+    return this.request('/content');
   }
 
-  async getHotspots() {
-    return this.request('/content/hotspots');
-  }
-
-  async getHotChats() {
-    return this.request('/content/hot-chats');
-  }
-
-  async getContentById(contentId: string) {
-    return this.request(`/content/${contentId}`);
-  }
-
-  async createContent(data: {
-    title: string;
-    description?: string;
-    category?: string;
-    cover?: string;
-  }) {
+  async createContent(data: any) {
+    if (USE_MOCK_DATA) {
+      // 获取当前用户信息
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+      
+      const newContent = {
+        id: Date.now().toString(),
+        title: data.title,
+        content: data.description || '',
+        author: currentUser.name,
+        authorAvatar: currentUser.avatar,
+        views: '0',
+        category: data.category || 'Knowledge',
+        image: data.cover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
+        created_at: new Date().toISOString(),
+        user_id: currentUser.user_id
+      };
+      
+      mockData.content.unshift(newContent);
+      return Promise.resolve(newContent);
+    }
     return this.request('/content', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -497,130 +714,105 @@ class ApiService {
   }
 
   async deleteContent(contentId: string) {
+    if (USE_MOCK_DATA) {
+      const initialLength = mockData.content.length;
+      mockData.content = mockData.content.filter(item => item.id !== contentId);
+      if (mockData.content.length < initialLength) {
+        return Promise.resolve({ success: true, message: '内容删除成功' });
+      } else {
+        return Promise.reject(new Error('内容不存在'));
+      }
+    }
     return this.request(`/content/${contentId}`, {
       method: 'DELETE',
     });
   }
 
-  // Groups API
-  async getGroups(limit: number = 10, offset: number = 0) {
-    return this.request(`/groups?limit=${limit}&offset=${offset}`);
+  // Course API
+  async getCourses() {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve(mockData.courses);
+    }
+    return this.request('/courses');
   }
 
-  async getMyGroups() {
-    return this.request('/groups/my');
-  }
-
-  async getGroupById(groupId: string) {
-    return this.request(`/groups/${groupId}`);
-  }
-
-  async createGroup(data: {
-    name: string;
-    description?: string;
-    cover?: string;
-    icon?: string;
-  }) {
-    return this.request('/groups', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async joinGroup(groupId: string, userId: string) {
-    return this.request(`/groups/${groupId}/members`, {
-      method: 'POST',
-      body: JSON.stringify({ group_id: groupId, user_id: userId }),
-    });
-  }
-
-  // Events API
-  async getEvents(category?: string, limit: number = 10, offset: number = 0) {
-    const params = new URLSearchParams();
-    if (category) params.append('category', category);
-    params.append('limit', limit.toString());
-    params.append('offset', offset.toString());
-    return this.request(`/events?${params.toString()}`);
-  }
-
-  async getMockEvents() {
-    return this.request('/events/mock');
-  }
-
-  async getEventById(eventId: string) {
-    return this.request(`/events/${eventId}`);
-  }
-
-  async createEvent(data: {
-    title: string;
-    category?: string;
-    date?: string;
-    location?: string;
-    distance?: number;
-    cover?: string;
-  }) {
-    return this.request('/events', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async bookEvent(userId: string, eventId: string) {
-    return this.request('/events/book', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId, event_id: eventId }),
-    });
-  }
-
-  // Courses API
-  async getCourses(limit: number = 10, offset: number = 0) {
-    return this.request(`/courses?limit=${limit}&offset=${offset}`);
-  }
-
-  async getMockCourses() {
-    return this.request('/courses/mock');
-  }
-
-  async getCourseById(courseId: string) {
-    return this.request(`/courses/${courseId}`);
-  }
-
-  async getUserCourses(userId: string) {
-    return this.request(`/courses/user/${userId}`);
-  }
-
-  async enrollCourse(userId: string, courseId: string) {
-    return this.request('/courses/enroll', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId, course_id: courseId }),
-    });
-  }
-
-  async updateProgress(userCourseId: string, progress: number, completed: boolean) {
-    return this.request(`/courses/progress/${userCourseId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ progress, completed }),
-    });
-  }
-
-  async getHeatmapData(userId: string) {
-    return this.request(`/courses/heatmap/${userId}`);
-  }
-
-  async updateHeatmapData(userId: string, data: number[]) {
-    return this.request(`/courses/heatmap/${userId}`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  // Course Management API
   async deleteCourse(courseId: string) {
     if (USE_MOCK_DATA) {
-      // 模拟删除课程
-      return Promise.resolve({ success: true, message: '课程删除成功' });
+      const initialLength = mockData.courses.length;
+      mockData.courses = mockData.courses.filter(item => item.id !== courseId);
+      if (mockData.courses.length < initialLength) {
+        return Promise.resolve({ success: true, message: '课程删除成功' });
+      } else {
+        return Promise.reject(new Error('课程不存在'));
+      }
     }
     return this.request(`/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // User API
+  async getUsers() {
+    if (USE_MOCK_DATA) {
+      const users = Object.values(mockData.users).map(user => ({
+        id: user.user_id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        created_at: new Date().toISOString()
+      }));
+      return Promise.resolve(users);
+    }
+    return this.request('/users');
+  }
+
+  // Stats API
+  async getStats() {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve({
+        userCount: Object.keys(mockData.users).length,
+        contentCount: mockData.content.length,
+        courseCount: mockData.courses.length,
+        messageCount: mockData.messages.length
+      });
+    }
+    return this.request('/stats');
+  }
+
+  // Logs API
+  async getLogs() {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve(mockData.logs);
+    }
+    return this.request('/logs');
+  }
+
+  // Add log entry
+  async addLog(action: string, description: string) {
+    if (USE_MOCK_DATA) {
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : { name: 'Unknown User' };
+      
+      const newLog = {
+        id: Date.now().toString(),
+        user: currentUser.name,
+        action,
+        description,
+        timestamp: new Date().toISOString(),
+        ip: '192.168.1.1' // 模拟IP地址
+      };
+      
+      mockData.logs.unshift(newLog);
+      return Promise.resolve(newLog);
+    }
+    return this.request('/logs', {
+      method: 'POST',
+      body: JSON.stringify({ action, description })
+    });
+  }
+}
+
+export const api = new ApiService();
       method: 'DELETE',
     });
   }

@@ -1,18 +1,20 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
-import LoginPage from './pages/LoginPage';
-import DiscoveryPage from './pages/DiscoveryPage';
-import GroupPage from './pages/GroupPage';
-import LocalPage from './pages/LocalPage';
-import CoursePage from './pages/CoursePage';
-import MessagePage from './pages/MessagePage';
-import ProfilePage from './pages/ProfilePage';
-import AdminPage from './pages/AdminPage';
 import CreateModal from './components/CreateModal';
 import { AppTheme } from './types';
 import { api } from './src/services/api';
+
+// 懒加载组件
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage'));
+const GroupPage = lazy(() => import('./pages/GroupPage'));
+const LocalPage = lazy(() => import('./pages/LocalPage'));
+const CoursePage = lazy(() => import('./pages/CoursePage'));
+const MessagePage = lazy(() => import('./pages/MessagePage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 interface AppContextType {
   theme: AppTheme;
@@ -127,25 +129,31 @@ const App: React.FC = () => {
         <div className="flex min-h-screen">
           {isLoggedIn && <Sidebar onOpenCreate={() => setIsCreateModalOpen(true)} />}
           <main className={`flex-1 ${isLoggedIn ? 'ml-20 lg:ml-64' : ''}`}>
-            <Routes>
-              {!isLoggedIn ? (
-                <>
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="*" element={<Navigate to="/login" replace />} />
-                </>
-              ) : (
-                <>
-                  <Route path="/" element={<DiscoveryPage />} />
-                  <Route path="/groups" element={<GroupPage />} />
-                  <Route path="/local" element={<LocalPage />} />
-                  <Route path="/courses" element={<CoursePage />} />
-                  <Route path="/messages" element={<MessagePage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </>
-              )}
-            </Routes>
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            }>
+              <Routes>
+                {!isLoggedIn ? (
+                  <>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="*" element={<Navigate to="/login" replace />} />
+                  </>
+                ) : (
+                  <>
+                    <Route path="/" element={<DiscoveryPage />} />
+                    <Route path="/groups" element={<GroupPage />} />
+                    <Route path="/local" element={<LocalPage />} />
+                    <Route path="/courses" element={<CoursePage />} />
+                    <Route path="/messages" element={<MessagePage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </>
+                )}
+              </Routes>
+            </Suspense>
           </main>
         </div>
         {isCreateModalOpen && <CreateModal onClose={() => setIsCreateModalOpen(false)} />}
