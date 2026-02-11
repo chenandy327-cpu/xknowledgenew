@@ -14,6 +14,7 @@ interface Course {
   startTime?: string;
   duration?: string;
   enrolled?: boolean;
+  creatorId?: string;
 }
 
 interface Comment {
@@ -74,6 +75,8 @@ const CoursePage: React.FC = () => {
     startTime: '',
     duration: ''
   });
+  const [courseCover, setCourseCover] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -95,6 +98,43 @@ const CoursePage: React.FC = () => {
     return colors[level];
   };
 
+  // 处理封面上传
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 检查文件大小
+      if (file.size > 5 * 1024 * 1024) {
+        alert('文件大小不能超过5MB');
+        return;
+      }
+      
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        alert('请上传图片文件');
+        return;
+      }
+      
+      // 模拟上传进度
+      setUploadProgress(0);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setCourseCover(event.target.result as string);
+          // 模拟上传进度
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            setUploadProgress(progress);
+            if (progress >= 100) {
+              clearInterval(interval);
+            }
+          }, 100);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // 创建课程
   const handleCreateCourse = () => {
     if (newCourse.title && newCourse.description) {
@@ -104,11 +144,12 @@ const CoursePage: React.FC = () => {
         instructor: newCourse.instructor,
         progress: 0,
         completed: false,
-        cover: `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/400/300`,
+        cover: courseCover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/400/300`,
         type: newCourse.type,
         description: newCourse.description,
         startTime: newCourse.startTime,
-        duration: newCourse.duration
+        duration: newCourse.duration,
+        creatorId: 'current-user-id' // 实际应用中应从认证系统获取
       };
       setCourses([course, ...courses]);
       setIsCreating(false);
@@ -120,17 +161,32 @@ const CoursePage: React.FC = () => {
         startTime: '',
         duration: ''
       });
+      setCourseCover('');
+      setUploadProgress(0);
       // 保存到本地存储
       localStorage.setItem('courses', JSON.stringify([course, ...courses]));
     }
   };
 
+  // 删除课程
+  const deleteCourse = (courseId: string) => {
+    if (window.confirm('确定要删除这门课程吗？')) {
+      const updatedCourses = courses.filter(course => course.id !== courseId);
+      setCourses(updatedCourses);
+      // 保存到本地存储
+      localStorage.setItem('courses', JSON.stringify(updatedCourses));
+    }
+  };
+
   // 加入课程
   const joinCourse = (course: Course) => {
-    const updatedCourse = { ...course, enrolled: true };
-    setCourses(courses.map(c => c.id === course.id ? updatedCourse : c));
-    // 保存到本地存储
-    localStorage.setItem('courses', JSON.stringify(courses.map(c => c.id === course.id ? updatedCourse : c)));
+    if (window.confirm('确定要加入这门课程吗？')) {
+      const updatedCourse = { ...course, enrolled: true };
+      setCourses(courses.map(c => c.id === course.id ? updatedCourse : c));
+      // 保存到本地存储
+      localStorage.setItem('courses', JSON.stringify(courses.map(c => c.id === course.id ? updatedCourse : c)));
+      alert('成功加入课程！');
+    }
   };
 
   // 查看课程详情
@@ -316,6 +372,15 @@ const CoursePage: React.FC = () => {
                     加入课程
                   </button>
                 )}
+                {course.creatorId === 'current-user-id' && (
+                  <button 
+                    onClick={() => deleteCourse(course.id)}
+                    className="w-12 h-12 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-200 transition-all"
+                    title="删除课程"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -329,6 +394,44 @@ const CoursePage: React.FC = () => {
             <h2 className="text-3xl font-black mb-10 tracking-tighter">创建新课程</h2>
             
             <div className="space-y-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程封面</label>
+                <div className="space-y-4">
+                  {courseCover ? (
+                    <div className="relative">
+                      <img 
+                        src={courseCover} 
+                        alt="Course Cover" 
+                        className="w-full h-48 object-cover rounded-2xl"
+                      />
+                      {uploadProgress < 100 && (
+                        <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
+                          <div className="text-white font-bold">上传中... {uploadProgress}%</div>
+                        </div>
+                      )}
+                      <button 
+                        onClick={() => setCourseCover('')}
+                        className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all"
+                      >
+                        <span className="material-symbols-outlined">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="block border-2 border-dashed border-primary/30 rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-all">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        className="hidden"
+                        onChange={handleCoverUpload}
+                      />
+                      <span className="material-symbols-outlined text-4xl text-primary/50 mb-3">add_photo_alternate</span>
+                      <p className="text-sm font-bold text-slate-500">点击或拖拽上传课程封面</p>
+                      <p className="text-xs text-slate-400 mt-2">支持 JPG、PNG 格式，最大 5MB</p>
+                    </label>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程标题</label>
                 <input 

@@ -106,6 +106,8 @@ const ProfilePage: React.FC = () => {
     type: 'image',
     content: ''
   });
+  const [customCategory, setCustomCategory] = useState('');
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [newCheckin, setNewCheckin] = useState({
     mood: 'good' as 'great' | 'good' | 'normal' | 'tired' | 'sad',
     content: ''
@@ -136,10 +138,11 @@ const ProfilePage: React.FC = () => {
   // 处理添加作品集
   const handleAddItem = () => {
     if (newItem.title && newItem.content) {
+      const category = useCustomCategory ? customCategory : (newItem.category || 'AI & UI');
       const item: PortfolioItem = {
         id: Date.now().toString(),
         title: newItem.title!,
-        category: newItem.category || 'AI & UI',
+        category: category || 'AI & UI',
         type: newItem.type || 'image',
         cover: `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
         content: newItem.content!,
@@ -148,6 +151,8 @@ const ProfilePage: React.FC = () => {
       setPortfolio([item, ...portfolio]);
       setIsAdding(false);
       setNewItem({ title: '', category: 'AI & UI', type: 'image', content: '' });
+      setCustomCategory('');
+      setUseCustomCategory(false);
       // 添加到动态
       addActivity('post', `发布了新作品：${item.title}`);
       // 保存到本地存储
@@ -587,11 +592,27 @@ const ProfilePage: React.FC = () => {
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">领域</label>
                   <select 
                     className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold appearance-none"
-                    value={newItem.category}
-                    onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+                    value={useCustomCategory ? 'Custom' : newItem.category}
+                    onChange={(e) => {
+                      if (e.target.value === 'Custom') {
+                        setUseCustomCategory(true);
+                      } else {
+                        setUseCustomCategory(false);
+                        setNewItem({...newItem, category: e.target.value});
+                      }
+                    }}
                   >
                     {categories.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                    <option value="Custom">自定义</option>
                   </select>
+                  {useCustomCategory && (
+                    <input 
+                      className="w-full px-6 py-4 mt-3 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                      placeholder="输入自定义领域..."
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">类型</label>

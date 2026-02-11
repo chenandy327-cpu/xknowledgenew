@@ -36,14 +36,7 @@ const DiscoveryPage: React.FC = () => {
   ]);
 
   // 帖子数据
-  const [posts, setPosts] = useState<Post[]>([
-    { id: 1, title: '生成式 AI 在现代 UI 交互中的深度实践', content: '探讨大语言模型与实时渲染技术如何深度融合，为用户带来前所未有的沉浸式体验与认知革命...', author: 'Dr. Alan Chen', authorAvatar: 'https://picsum.photos/id/140/100/100', views: '2.4k', category: 'Knowledge', image: 'https://picsum.photos/id/115/600/400' },
-    { id: 2, title: '量子计算技术如何在未来五年内重塑行业生态', content: '量子计算的突破将如何改变我们的生活和工作方式，从金融到医疗，从物流到能源...', author: 'Prof. Sarah Lin', authorAvatar: 'https://picsum.photos/id/141/100/100', views: '1.8k', category: '量子计算', image: 'https://picsum.photos/id/116/600/400' },
-    { id: 3, title: '神经网络在艺术创作中的应用与挑战', content: '深度神经网络如何帮助艺术家创作，同时面临哪些伦理和技术挑战...', author: 'Artist Mike Wang', authorAvatar: 'https://picsum.photos/id/142/100/100', views: '3.2k', category: '神经网络', image: 'https://picsum.photos/id/117/600/400' },
-    { id: 4, title: '生成式AI的商业应用与变现模式', content: '如何将生成式AI技术转化为商业价值，探索不同行业的应用场景和变现路径...', author: 'CEO Lisa Zhang', authorAvatar: 'https://picsum.photos/id/143/100/100', views: '2.1k', category: '生成式AI', image: 'https://picsum.photos/id/118/600/400' },
-    { id: 5, title: '艺术哲学视角下的数字艺术发展', content: '从艺术哲学的角度审视数字艺术的发展历程和未来趋势...', author: 'Philosopher David Kim', authorAvatar: 'https://picsum.photos/id/144/100/100', views: '1.5k', category: '艺术哲学', image: 'https://picsum.photos/id/119/600/400' },
-    { id: 6, title: '数字孪生技术在智能制造中的实践', content: '数字孪生如何帮助制造企业提高生产效率和产品质量...', author: 'Engineer Robert Li', authorAvatar: 'https://picsum.photos/id/145/100/100', views: '1.9k', category: '数字孪生', image: 'https://picsum.photos/id/120/600/400' },
-  ]);
+  const [posts, setPosts] = useState<Post[]>([]);
 
   // 搜索相关状态
   const [searchQuery, setSearchQuery] = useState('');
@@ -76,12 +69,14 @@ const DiscoveryPage: React.FC = () => {
       try {
         setIsUpdating(true);
         setUpdateError('');
-        const [hotspotsData, hotChatsData] = await Promise.all([
+        const [hotspotsData, hotChatsData, contentData] = await Promise.all([
           api.getHotspots(),
-          api.getHotChats()
+          api.getHotChats(),
+          api.getContent()
         ]);
         setHotspots(hotspotsData);
         setHotChats(hotChatsData);
+        setPosts(contentData);
       } catch (error) {
         console.error('Error fetching data:', error);
         setUpdateError('更新数据失败，请稍后重试');

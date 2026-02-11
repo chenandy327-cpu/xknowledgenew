@@ -10,6 +10,8 @@ interface Contact {
   lastMessage: string;
   lastMessageTime: string;
   unread: boolean;
+  type: 'user' | 'agent';
+  agentCategory?: string;
 }
 
 interface Message {
@@ -19,6 +21,14 @@ interface Message {
   content: string;
   time: string;
   status: 'sent' | 'delivered' | 'read';
+  isFavorite?: boolean;
+}
+
+interface Notebook {
+  id: string;
+  title: string;
+  createdAt: string;
+  messages: string[]; // 消息ID数组
 }
 
 interface FriendRequest {
@@ -39,7 +49,8 @@ const MessagePage: React.FC = () => {
       status: 'online',
       lastMessage: '期待你分享更多的学习图谱...',
       lastMessageTime: '14:20',
-      unread: false
+      unread: false,
+      type: 'user'
     },
     {
       id: '2',
@@ -48,7 +59,8 @@ const MessagePage: React.FC = () => {
       status: 'offline',
       lastMessage: '代码已经提交，麻烦 review 一下',
       lastMessageTime: '昨天',
-      unread: true
+      unread: true,
+      type: 'user'
     },
     {
       id: '3',
@@ -57,7 +69,8 @@ const MessagePage: React.FC = () => {
       status: 'online',
       lastMessage: '下次会议时间确定了吗？',
       lastMessageTime: '10:30',
-      unread: false
+      unread: false,
+      type: 'user'
     },
     {
       id: '4',
@@ -66,7 +79,8 @@ const MessagePage: React.FC = () => {
       status: 'offline',
       lastMessage: '设计稿已经更新到 Figma',
       lastMessageTime: '3天前',
-      unread: false
+      unread: false,
+      type: 'user'
     },
     {
       id: '5',
@@ -75,9 +89,60 @@ const MessagePage: React.FC = () => {
       status: 'online',
       lastMessage: 'API 文档已经更新',
       lastMessageTime: '今天',
-      unread: true
+      unread: true,
+      type: 'user'
+    },
+    // 智能体联系人
+    {
+      id: 'agent-1',
+      name: 'AI 学习助手',
+      avatar: 'https://picsum.photos/id/237/100/100',
+      status: 'online',
+      lastMessage: '你好！我是你的 AI 学习助手，有什么可以帮助你的？',
+      lastMessageTime: '今天',
+      unread: false,
+      type: 'agent',
+      agentCategory: '学习'
+    },
+    {
+      id: 'agent-2',
+      name: '技术顾问',
+      avatar: 'https://picsum.photos/id/238/100/100',
+      status: 'online',
+      lastMessage: '你好！我是你的技术顾问，有什么技术问题可以问我。',
+      lastMessageTime: '今天',
+      unread: false,
+      type: 'agent',
+      agentCategory: '技术'
+    },
+    {
+      id: 'agent-3',
+      name: '创意导师',
+      avatar: 'https://picsum.photos/id/239/100/100',
+      status: 'online',
+      lastMessage: '你好！我是你的创意导师，很高兴为你提供创意支持。',
+      lastMessageTime: '今天',
+      unread: false,
+      type: 'agent',
+      agentCategory: '创意'
+    },
+    {
+      id: 'agent-4',
+      name: '职业规划师',
+      avatar: 'https://picsum.photos/id/240/100/100',
+      status: 'online',
+      lastMessage: '你好！我是你的职业规划师，有什么职业相关的问题可以问我。',
+      lastMessageTime: '今天',
+      unread: false,
+      type: 'agent',
+      agentCategory: '职业'
     }
   ]);
+  const [favorites, setFavorites] = useState<string[]>([]); // 收藏的消息ID
+  const [notebooks, setNotebooks] = useState<Notebook[]>([]); // 笔记本列表
+  const [showNotebooks, setShowNotebooks] = useState(false); // 是否显示笔记本
+  const [newNotebookTitle, setNewNotebookTitle] = useState(''); // 新笔记本标题
+  const [showAddNotebookModal, setShowAddNotebookModal] = useState(false); // 是否显示添加笔记本模态框
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -170,11 +235,36 @@ const MessagePage: React.FC = () => {
 
       // 模拟对方回复
       setTimeout(() => {
+        // 检查是否是智能体联系人
+        const isAgent = contacts.find(c => c.id === activeContact)?.type === 'agent';
+        let replyContent = '收到你的消息，我会尽快回复。';
+        
+        // 根据智能体类型生成不同的回复
+        if (isAgent) {
+          const agent = contacts.find(c => c.id === activeContact);
+          switch (agent?.agentCategory) {
+            case '学习':
+              replyContent = '我可以帮你解答学习问题，提供学习资源和制定学习计划。你最近在学习什么？';
+              break;
+            case '技术':
+              replyContent = '作为技术顾问，我可以帮你解决编程问题、技术选型和系统设计。你遇到了什么技术难题？';
+              break;
+            case '创意':
+              replyContent = '我可以帮你 brainstorm 创意，提供设计灵感和创意方向。你在寻找什么类型的创意支持？';
+              break;
+            case '职业':
+              replyContent = '我可以帮你进行职业规划，提供简历建议和面试技巧。你对自己的职业有什么疑问？';
+              break;
+            default:
+              replyContent = '我是你的智能助手，有什么可以帮助你的？';
+          }
+        }
+        
         const replyMessage: Message = {
           id: (Date.now() + 1).toString(),
           contactId: activeContact,
           sender: 'other',
-          content: '收到你的消息，我会尽快回复。',
+          content: replyContent,
           time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
           status: 'delivered'
         };
@@ -189,6 +279,39 @@ const MessagePage: React.FC = () => {
         ));
       }, 1000);
     }
+  };
+
+  // 收藏/取消收藏消息
+  const toggleFavorite = (messageId: string) => {
+    if (favorites.includes(messageId)) {
+      setFavorites(favorites.filter(id => id !== messageId));
+    } else {
+      setFavorites([...favorites, messageId]);
+    }
+  };
+
+  // 创建笔记本
+  const createNotebook = () => {
+    if (newNotebookTitle) {
+      const newNotebook: Notebook = {
+        id: Date.now().toString(),
+        title: newNotebookTitle,
+        createdAt: new Date().toISOString(),
+        messages: []
+      };
+      setNotebooks([newNotebook, ...notebooks]);
+      setShowAddNotebookModal(false);
+      setNewNotebookTitle('');
+    }
+  };
+
+  // 添加消息到笔记本
+  const addMessageToNotebook = (messageId: string, notebookId: string) => {
+    setNotebooks(notebooks.map(notebook => 
+      notebook.id === notebookId 
+        ? { ...notebook, messages: [...notebook.messages, messageId] }
+        : notebook
+    ));
   };
 
   // 添加好友
@@ -399,18 +522,26 @@ const MessagePage: React.FC = () => {
             >
               <div className="relative">
                 <img className="w-12 h-12 rounded-2xl object-cover" src={contact.avatar} alt="Avatar" />
-                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${
-                  contact.status === 'online' ? 'bg-emerald-500' : 'bg-slate-300'
-                }`}></div>
+                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-zinc-900 ${contact.status === 'online' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+                {contact.type === 'agent' && (
+                  <div className="absolute top-0 right-0 w-5 h-5 bg-blue-500 text-white rounded-full border-2 border-white dark:border-zinc-900 flex items-center justify-center text-[8px] font-bold">
+                    AI
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline mb-1">
-                  <h3 className="font-bold text-sm truncate">{contact.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm truncate">{contact.name}</h3>
+                    {contact.type === 'agent' && contact.agentCategory && (
+                      <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] rounded-full font-bold">
+                        {contact.agentCategory}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] text-slate-400">{contact.lastMessageTime}</span>
                 </div>
-                <p className={`text-xs truncate ${
-                  contact.unread ? 'text-primary font-bold' : 'text-slate-500'
-                }`}>{contact.lastMessage || '暂无消息'}</p>
+                <p className={`text-xs truncate ${contact.unread ? 'text-primary font-bold' : 'text-slate-500'}`}>{contact.lastMessage || '暂无消息'}</p>
                 {contact.unread && (
                   <div className="absolute right-4 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-primary rounded-full"></div>
                 )}
@@ -460,23 +591,37 @@ const MessagePage: React.FC = () => {
                 {message.sender === 'other' && (
                   <img className="w-8 h-8 rounded-xl mt-1 flex-shrink-0" src={currentContact.avatar} alt="Other" />
                 )}
-                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                  message.sender === 'me' 
-                    ? 'bg-primary text-white rounded-tr-none shadow-lg shadow-primary/20' 
-                    : 'bg-slate-50 dark:bg-zinc-900 rounded-tl-none border border-primary/5'
-                }`}>
+                <div className={`p-4 rounded-2xl text-sm leading-relaxed ${message.sender === 'me' ? 'bg-primary text-white rounded-tr-none shadow-lg shadow-primary/20' : 'bg-slate-50 dark:bg-zinc-900 rounded-tl-none border border-primary/5'}`}>
                   {message.content}
-                  <div className={`flex justify-end mt-1 text-[9px] ${
-                    message.sender === 'me' ? 'text-white/70' : 'text-slate-400'
-                  }`}>
-                    <span>{message.time}</span>
-                    {message.sender === 'me' && (
-                      <span className="ml-2">
-                        {message.status === 'sent' && '✓'}
-                        {message.status === 'delivered' && '✓✓'}
-                        {message.status === 'read' && '✓✓'}
-                      </span>
-                    )}
+                  <div className={`flex justify-between mt-1 text-[9px] ${message.sender === 'me' ? 'text-white/70' : 'text-slate-400'}`}>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => toggleFavorite(message.id)}
+                        className={`p-1 rounded-full ${favorites.includes(message.id) ? 'text-yellow-400' : 'text-inherit'}`}
+                        title={favorites.includes(message.id) ? '取消收藏' : '收藏消息'}
+                      >
+                        <span className="material-symbols-outlined text-[12px]">
+                          {favorites.includes(message.id) ? 'star' : 'star_outline'}
+                        </span>
+                      </button>
+                      <button 
+                        onClick={() => setShowAddNotebookModal(true)}
+                        className="p-1 rounded-full text-inherit hover:bg-black/10"
+                        title="添加到笔记本"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">note_add</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>{message.time}</span>
+                      {message.sender === 'me' && (
+                        <span>
+                          {message.status === 'sent' && '✓'}
+                          {message.status === 'delivered' && '✓✓'}
+                          {message.status === 'read' && '✓✓'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -553,6 +698,41 @@ const MessagePage: React.FC = () => {
                   className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-all"
                 >
                   发送请求
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Notebook Modal */}
+      {showAddNotebookModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20">
+            <h2 className="text-2xl font-black mb-8 tracking-tighter">创建笔记本</h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">笔记本标题</label>
+                <input 
+                  type="text"
+                  placeholder="输入笔记本标题..."
+                  value={newNotebookTitle}
+                  onChange={(e) => setNewNotebookTitle(e.target.value)}
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => setShowAddNotebookModal(false)}
+                  className="flex-1 py-4 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={createNotebook}
+                  className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-all"
+                >
+                  创建
                 </button>
               </div>
             </div>

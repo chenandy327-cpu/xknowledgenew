@@ -4,9 +4,10 @@ import { api } from '@api';
 
 interface CreateModalProps {
   onClose: () => void;
+  onContentCreated?: () => void;
 }
 
-const CreateModal: React.FC<CreateModalProps> = ({ onClose }) => {
+const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) => {
   const [activeTab, setActiveTab] = useState('select');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -166,6 +167,10 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose }) => {
       files.forEach(file => URL.revokeObjectURL(filePreviews[files.indexOf(file)]));
       setFiles([]);
       setFilePreviews([]);
+      // Notify parent component that content was created
+      if (onContentCreated) {
+        onContentCreated();
+      }
       // Close modal after 2 seconds
       setTimeout(() => {
         onClose();
