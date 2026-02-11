@@ -1,6 +1,7 @@
 
 import React, { useState, useRef } from 'react';
-import { api } from '@api';
+import { api } from '../src/services/api';
+import { useTranslations } from '../src/i18n';
 
 interface CreateModalProps {
   onClose: () => void;
@@ -26,18 +27,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
   const [uploadSuccess, setUploadSuccess] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const i18n = useTranslations();
 
   const options = [
-    { icon: 'edit_note', label: '发布作品', desc: '支持图文、视频多媒体', value: 'content' },
-    { icon: 'live_tv', label: '发起直播', desc: '连接课程，实时互动', highlight: true, value: 'live' },
-    { icon: 'school', label: '上传录播', desc: '系统化课程教学', value: 'course' },
-    { icon: 'groups', label: '创建小组', desc: '连接志同道合的伙伴', value: 'group' },
+    { icon: 'edit_note', label: i18n.createModal.content, desc: i18n.createModal.contentDesc, value: 'content' },
+    { icon: 'live_tv', label: i18n.createModal.live, desc: i18n.createModal.liveDesc, highlight: true, value: 'live' },
+    { icon: 'school', label: i18n.createModal.course, desc: i18n.createModal.courseDesc, value: 'course' },
+    { icon: 'groups', label: i18n.createModal.group, desc: i18n.createModal.groupDesc, value: 'group' },
   ];
 
   // File upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selectedFiles = Array.from(e.target.files);
+      const selectedFiles = Array.from(e.target.files) as File[];
       processFiles(selectedFiles);
     }
   };
@@ -61,7 +63,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
     setIsDragging(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files);
+      const droppedFiles = Array.from(e.dataTransfer.files) as File[];
       processFiles(droppedFiles);
     }
   };
@@ -185,20 +187,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-bgDark/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[3rem] shadow-2xl border border-primary/10 overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[3rem] shadow-2xl shadow-primary/20 border border-primary/10 overflow-hidden animate-in fade-in zoom-in duration-500 transform transition-all hover:shadow-3xl hover:shadow-primary/30">
         <div className="p-8 border-b border-primary/5 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-1">
-              {activeTab === 'select' ? '开始创作' : 
-               activeTab === 'content' ? '发布作品' : 
-               activeTab === 'live' ? '发起直播' : 
-               activeTab === 'course' ? '上传录播' : '创建小组'}
+              {activeTab === 'select' ? i18n.createModal.title : 
+               activeTab === 'content' ? i18n.createModal.content : 
+               activeTab === 'live' ? i18n.createModal.live : 
+               activeTab === 'course' ? i18n.createModal.course : i18n.createModal.group}
             </h2>
             <p className="text-slate-500 text-sm">
-              {activeTab === 'select' ? '选择你的创作形式，激发无限潜能' : 
-               activeTab === 'content' ? '分享你的知识和创意' : 
-               activeTab === 'live' ? '与大家实时互动' : 
-               activeTab === 'course' ? '创建系统化的课程' : '连接志同道合的伙伴'}
+              {activeTab === 'select' ? i18n.createModal.selectOption : 
+               activeTab === 'content' ? i18n.createModal.contentDesc : 
+               activeTab === 'live' ? i18n.createModal.liveDesc : 
+               activeTab === 'course' ? i18n.createModal.courseDesc : i18n.createModal.groupDesc}
             </p>
           </div>
           <button onClick={onClose} className="p-3 hover:bg-primary/5 rounded-full transition-colors">
@@ -213,20 +215,20 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
               <button
                 key={i}
                 onClick={() => setActiveTab(opt.value)}
-                className={`p-6 rounded-[2rem] border transition-all text-left flex gap-6 hover:-translate-y-1 ${
+                className={`p-6 rounded-[2rem] border transition-all duration-300 text-left flex gap-6 hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 ${
                   opt.highlight
-                    ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30'
-                    : 'bg-slate-50 dark:bg-zinc-800/50 border-primary/5 hover:border-primary/20'
+                    ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40'
+                    : 'bg-slate-50 dark:bg-zinc-800/50 border-primary/5 hover:border-primary/20 hover:bg-slate-100 dark:hover:bg-zinc-700/50'
                 }`}
               >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner transition-all duration-300 transform hover:scale-105 ${
                   opt.highlight ? 'bg-white/20' : 'bg-white dark:bg-zinc-800 text-primary'
                 }`}>
-                  <span className="material-symbols-outlined text-3xl">{opt.icon}</span>
+                  <span className="material-symbols-outlined text-3xl transition-all duration-300 transform hover:scale-110">{opt.icon}</span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-lg mb-1">{opt.label}</p>
-                  <p className={`text-xs ${opt.highlight ? 'text-white/70' : 'text-slate-400'}`}>{opt.desc}</p>
+                  <p className="font-bold text-lg mb-1 transition-all duration-300">{opt.label}</p>
+                  <p className={`text-xs ${opt.highlight ? 'text-white/70' : 'text-slate-400'} transition-all duration-300`}>{opt.desc}</p>
                 </div>
               </button>
             ))}
@@ -237,42 +239,42 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
         {activeTab === 'content' && (
           <form onSubmit={handleCreateContent} className="p-8 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">标题</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.contentTitle}</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="输入作品标题"
+                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-300 hover:border-primary/30"
+                placeholder={i18n.createModal.titlePlaceholder}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">描述</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.description}</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="输入作品描述"
+                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-300 hover:border-primary/30 resize-none"
+                placeholder={i18n.createModal.descriptionPlaceholder}
                 rows={3}
               ></textarea>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">分类</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.category}</label>
               <input
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="输入作品分类"
+                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-300 hover:border-primary/30"
+                placeholder={i18n.createModal.categoryPlaceholder}
               />
             </div>
 
             {/* File Upload Section */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">上传媒体文件</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.uploadFiles}</label>
               
               {/* Drag and Drop Area */}
               <div
@@ -293,17 +295,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
                 />
                 <span className="material-symbols-outlined text-4xl text-slate-400 mb-4">cloud_upload</span>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  点击或拖放文件到此处上传
+                  {i18n.createModal.dragDrop}
                 </p>
                 <p className="text-xs text-slate-400 dark:text-slate-500">
-                  支持图片和视频文件，单个文件不超过 50MB
+                  {i18n.createModal.fileTypes}
                 </p>
               </div>
               
               {/* File Previews */}
               {filePreviews.length > 0 && (
                 <div className="mt-4">
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">已选择的文件</h4>
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.selectedFiles}</h4>
                   <div className="grid grid-cols-3 gap-4">
                     {filePreviews.map((preview, index) => {
                       const file = files[index];
@@ -348,7 +350,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
               {uploadProgress > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    <span>上传进度</span>
+                    <span>{i18n.createModal.uploadProgress}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-zinc-700 rounded-full h-2">
@@ -367,7 +369,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
                   onClick={handleUploadFiles}
                   className="mt-4 w-full py-3 bg-primary text-white rounded-lg font-bold hover:shadow-xl hover:shadow-primary/30 transition-all"
                 >
-                  开始上传文件
+                  {i18n.createModal.startUpload}
                 </button>
               )}
               
@@ -383,13 +385,13 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
             
             {/* Cover Image URL (fallback) */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">封面图片 URL (可选)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{i18n.createModal.coverImage}</label>
               <input
                 type="text"
                 value={cover}
                 onChange={(e) => setCover(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="输入封面图片 URL (如果不上传文件)"
+                className="w-full px-4 py-3 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-300 hover:border-primary/30"
+                placeholder={i18n.createModal.coverImagePlaceholder}
               />
             </div>
 
@@ -405,16 +407,26 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
               <button
                 type="button"
                 onClick={() => setActiveTab('select')}
-                className="flex-1 py-3 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
+                className="flex-1 py-3 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-slate-300 dark:focus:ring-zinc-700"
               >
-                取消
+                {i18n.common.cancel}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
+                className="flex-1 bg-primary text-white py-3 rounded-lg font-bold hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none"
               >
-                {loading ? '发布中...' : '发布作品'} <span className="material-symbols-outlined text-base">send</span>
+                {loading ? (
+                  <>
+                    <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>发布中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{i18n.createModal.publish}</span>
+                    <span className="material-symbols-outlined text-base">send</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -424,19 +436,19 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, onContentCreated }) 
         {(activeTab === 'live' || activeTab === 'course' || activeTab === 'group') && (
           <div className="p-8 flex flex-col items-center justify-center h-64">
             <span className="material-symbols-outlined text-6xl text-slate-300 mb-4">construction</span>
-            <h3 className="text-xl font-bold mb-2">功能开发中</h3>
-            <p className="text-slate-500 text-center mb-6">该功能正在开发中，敬请期待</p>
+            <h3 className="text-xl font-bold mb-2">{i18n.createModal.construction}</h3>
+            <p className="text-slate-500 text-center mb-6">{i18n.createModal.constructionDesc}</p>
             <button
               onClick={() => setActiveTab('select')}
               className="px-6 py-3 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all"
             >
-              返回选择
+              {i18n.createModal.backToSelect}
             </button>
           </div>
         )}
 
         <div className="p-8 bg-slate-50 dark:bg-zinc-800/50 flex justify-center">
-          <p className="text-xs text-slate-400 font-medium">x² 创作者权益：全方位多媒体形态支持（图文/视频/直播）</p>
+          <p className="text-xs text-slate-400 font-medium">{i18n.createModal.creatorRights}</p>
         </div>
       </div>
     </div>

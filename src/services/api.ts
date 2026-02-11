@@ -810,12 +810,6 @@ class ApiService {
       body: JSON.stringify({ action, description })
     });
   }
-}
-
-export const api = new ApiService();
-      method: 'DELETE',
-    });
-  }
 
   // Calendar API
   async getUserCalendarEvents(userId: string) {
@@ -1008,6 +1002,88 @@ export const api = new ApiService();
       return Promise.resolve({ role: isAdmin ? 'admin' : 'user', user_id: '1' });
     }
     return this.request('/auth/user-role');
+  }
+
+  // Discovery API
+  async getHotspots() {
+    if (USE_MOCK_DATA) {
+      // 模拟热点数据
+      return Promise.resolve([
+        {
+          id: '1',
+          title: '人工智能发展趋势',
+          description: '探索AI技术的最新进展和未来方向',
+          tags: ['AI', '技术', '趋势'],
+          热度: 95
+        },
+        {
+          id: '2',
+          title: '区块链应用场景',
+          description: '区块链技术在各个行业的创新应用',
+          tags: ['区块链', '技术', '应用'],
+          热度: 88
+        },
+        {
+          id: '3',
+          title: '元宇宙概念解析',
+          description: '深入理解元宇宙的定义和发展潜力',
+          tags: ['元宇宙', '概念', '未来'],
+          热度: 82
+        }
+      ]);
+    }
+    return this.request('/discovery/hotspots');
+  }
+
+  async getHotChats() {
+    if (USE_MOCK_DATA) {
+      // 模拟热门聊天数据
+      return Promise.resolve([
+        {
+          id: '1',
+          title: '编程学习方法',
+          participants: 128,
+          messages: 512,
+          lastActive: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: '职业发展规划',
+          participants: 96,
+          messages: 384,
+          lastActive: new Date().toISOString()
+        },
+        {
+          id: '3',
+          title: '技术选型讨论',
+          participants: 84,
+          messages: 336,
+          lastActive: new Date().toISOString()
+        }
+      ]);
+    }
+    return this.request('/discovery/hot-chats');
+  }
+
+  // User API
+  async updateCurrentUser(userData: any) {
+    if (USE_MOCK_DATA) {
+      // 获取当前用户信息
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      if (currentUserEmail) {
+        // 更新模拟数据
+        mockData.users[currentUserEmail] = {
+          ...mockData.users[currentUserEmail],
+          ...userData
+        };
+        return Promise.resolve(mockData.users[currentUserEmail]);
+      }
+      return Promise.resolve(mockData.users['explorer@knowledge.art']);
+    }
+    return this.request('/users/current', {
+      method: 'PUT',
+      body: JSON.stringify(userData)
+    });
   }
 }
 

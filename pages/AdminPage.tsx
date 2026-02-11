@@ -17,6 +17,7 @@ interface Content {
   author: string;
   created_at: string;
   user_id: string;
+  category?: string;
 }
 
 interface Course {
@@ -147,7 +148,7 @@ const AdminPage: React.FC = () => {
 
       // 获取用户列表
       const usersData = await api.getFriends();
-      setUsers(usersData.map((user: any) => ({
+      setUsers((usersData as any[]).map((user: any) => ({
         id: user.id,
         email: `${user.name}@example.com`,
         name: user.name,
@@ -640,84 +641,89 @@ const AdminPage: React.FC = () => {
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold">管理后台</h1>
           <p className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-            Manage users, content, and system settings
+            管理用户、内容和系统设置
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-1`}>
             <div className="text-3xl font-bold text-blue-500">{stats.totalUsers}</div>
-            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Total Users</div>
+            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>总用户数</div>
           </div>
-          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-1`}>
             <div className="text-3xl font-bold text-green-500">{stats.totalContent}</div>
-            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Total Content</div>
+            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>总内容数</div>
           </div>
-          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-1`}>
             <div className="text-3xl font-bold text-purple-500">{stats.totalGroups}</div>
-            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Total Groups</div>
+            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>总群组数</div>
           </div>
-          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
+          <div className={`p-6 rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800 hover:bg-gray-750' : 'bg-white hover:bg-gray-50'} transition-all duration-300 transform hover:-translate-y-1`}>
             <div className="text-3xl font-bold text-yellow-500">{stats.dailyActiveUsers}</div>
-            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Daily Active Users</div>
+            <div className={`mt-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>日活跃用户</div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b mb-6">
+        <div className="flex flex-wrap border-b mb-6">
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'users' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'users' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('users')}
           >
-            Users Management
+            用户管理
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'content' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'content' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('content')}
           >
-            Content Management
+            内容管理
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'courses' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'courses' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('courses')}
           >
-            Course Management
+            课程管理
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'stats' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'stats' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('stats')}
           >
-            Statistics & Reports
+            统计报表
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'logs' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'logs' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('logs')}
           >
-            Operation Logs
+            操作日志
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === 'system' ? 'border-b-2 border-blue-500 text-blue-500' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
+            className={`px-4 py-3 font-medium rounded-t-lg ${activeTab === 'system' ? 'border-b-2 border-blue-500 text-blue-500 bg-opacity-10' : theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'}`}
             onClick={() => setActiveTab('system')}
           >
-            System Settings
+            系统设置
           </button>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'users' && (
-          <div className={`rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} overflow-hidden`}>
+          <div className={`rounded-xl shadow ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} overflow-hidden transition-all duration-300`}>
             <div className="p-6">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
-                <h2 className="text-xl font-bold">User Management</h2>
-                <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+                <h2 className="text-xl font-bold flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  用户管理
+                </h2>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative">
                     <input 
                       type="text" 
-                      placeholder="Search users..." 
-                      className={`pl-10 pr-4 py-2 rounded ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border border-gray-300'}`}
+                      placeholder="搜索用户..." 
+                      className={`pl-10 pr-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 focus:border-blue-500' : 'bg-white border border-gray-300 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all`}
                     />
                     <span className="absolute left-3 top-2.5 text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -725,20 +731,23 @@ const AdminPage: React.FC = () => {
                       </svg>
                     </span>
                   </div>
-                  <select className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'bg-white border border-gray-300'}`}>
-                    <option>All Users</option>
-                    <option>Active Users</option>
-                    <option>Inactive Users</option>
+                  <select className={`px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 focus:border-blue-500' : 'bg-white border border-gray-300 focus:border-blue-500'} focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all`}>
+                    <option>所有用户</option>
+                    <option>活跃用户</option>
+                    <option>非活跃用户</option>
                   </select>
                   <button 
-                    className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white font-medium`}
+                    className={`px-4 py-2 rounded-lg ${theme === 'dark' ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white font-medium flex items-center transition-all transform hover:scale-105`}
                     onClick={() => {
                       setEditingUser(null);
                       setUserFormData({ name: '', email: '', password: '' });
                       setShowUserForm(true);
                     }}
                   >
-                    Create User
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    创建用户
                   </button>
                 </div>
               </div>
@@ -751,10 +760,10 @@ const AdminPage: React.FC = () => {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className={theme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'}>
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">User</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Join Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">用户</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">邮箱</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">加入日期</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider">操作</th>
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${theme === 'dark' ? 'divide-gray-700 bg-gray-800' : 'divide-gray-200 bg-white'}`}>
@@ -779,15 +788,15 @@ const AdminPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <button
                               onClick={() => deleteUser(user.id)}
-                              className="text-red-600 hover:text-red-900 mr-4"
+                              className={`px-3 py-1 rounded ${theme === 'dark' ? 'bg-red-900/20 text-red-400 hover:bg-red-900/30' : 'bg-red-100 text-red-600 hover:bg-red-200'} transition-all mr-2`}
                             >
-                              Delete
+                              删除
                             </button>
                             <button 
-                              className="text-blue-600 hover:text-blue-900"
+                              className={`px-3 py-1 rounded ${theme === 'dark' ? 'bg-blue-900/20 text-blue-400 hover:bg-blue-900/30' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'} transition-all`}
                               onClick={() => handleEditUser(user)}
                             >
-                              Edit
+                              编辑
                             </button>
                           </td>
                         </tr>
@@ -803,14 +812,25 @@ const AdminPage: React.FC = () => {
         {/* User Form Modal */}
         {showUserForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-6 max-w-md w-full`}>
-              <h3 className="text-xl font-semibold mb-4">{editingUser ? 'Edit User' : 'Create User'}</h3>
+            <div className={`rounded-xl shadow-lg ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'} p-6 max-w-md w-full transform transition-all duration-300 scale-100`}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">{editingUser ? '编辑用户' : '创建用户'}</h3>
+                <button 
+                  type="button" 
+                  className={`p-2 rounded-full ${theme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-all`}
+                  onClick={() => setShowUserForm(false)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
               <form onSubmit={handleUserSubmit}>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Name</label>
+                  <label className="block text-sm font-medium mb-1">姓名</label>
                   <input 
                     type="text" 
-                    className={`w-full px-3 py-2 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'border-gray-300'} ${userFormErrors.name ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''}`}
+                    className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 focus:border-blue-500' : 'border-gray-300 focus:border-blue-500'} ${userFormErrors.name ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''} focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all`}
                     value={userFormData.name}
                     onChange={(e) => {
                       setUserFormData({ ...userFormData, name: e.target.value });
@@ -818,6 +838,7 @@ const AdminPage: React.FC = () => {
                         setUserFormErrors({ ...userFormErrors, name: '' });
                       }
                     }}
+                    placeholder="请输入姓名"
                     required
                   />
                   {userFormErrors.name && (
@@ -825,10 +846,10 @@ const AdminPage: React.FC = () => {
                   )}
                 </div>
                 <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <label className="block text-sm font-medium mb-1">邮箱</label>
                   <input 
                     type="email" 
-                    className={`w-full px-3 py-2 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'border-gray-300'} ${userFormErrors.email ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''}`}
+                    className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 focus:border-blue-500' : 'border-gray-300 focus:border-blue-500'} ${userFormErrors.email ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''} focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all`}
                     value={userFormData.email}
                     onChange={(e) => {
                       setUserFormData({ ...userFormData, email: e.target.value });
@@ -836,6 +857,7 @@ const AdminPage: React.FC = () => {
                         setUserFormErrors({ ...userFormErrors, email: '' });
                       }
                     }}
+                    placeholder="请输入邮箱"
                     required
                   />
                   {userFormErrors.email && (
@@ -843,11 +865,11 @@ const AdminPage: React.FC = () => {
                   )}
                 </div>
                 {!editingUser && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">Password</label>
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium mb-1">密码</label>
                     <input 
                       type="password" 
-                      className={`w-full px-3 py-2 rounded border ${theme === 'dark' ? 'bg-gray-700 border-gray-600' : 'border-gray-300'} ${userFormErrors.password ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''}`}
+                      className={`w-full px-4 py-2 rounded-lg border ${theme === 'dark' ? 'bg-gray-700 border-gray-600 focus:border-blue-500' : 'border-gray-300 focus:border-blue-500'} ${userFormErrors.password ? (theme === 'dark' ? 'border-red-500' : 'border-red-500') : ''} focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all`}
                       value={userFormData.password}
                       onChange={(e) => {
                         setUserFormData({ ...userFormData, password: e.target.value });
@@ -855,6 +877,7 @@ const AdminPage: React.FC = () => {
                           setUserFormErrors({ ...userFormErrors, password: '' });
                         }
                       }}
+                      placeholder="请输入密码"
                       required
                     />
                     {userFormErrors.password && (
@@ -862,20 +885,20 @@ const AdminPage: React.FC = () => {
                     )}
                   </div>
                 )}
-                <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-3">
                   <button 
                     type="button" 
-                    className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-200 hover:bg-gray-300'}`}
+                    className={`px-4 py-2 rounded-lg ${theme === 'dark' ? 'bg-gray-600 hover:bg-gray-500' : 'bg-gray-200 hover:bg-gray-300'} transition-all`}
                     onClick={() => setShowUserForm(false)}
                   >
-                    Cancel
+                    取消
                   </button>
                   <button 
                     type="submit" 
-                    className={`px-4 py-2 rounded ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white`}
+                    className={`px-4 py-2 rounded-lg ${theme === 'dark' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600'} text-white transition-all transform hover:scale-105`}
                     disabled={loading}
                   >
-                    {loading ? 'Saving...' : 'Save'}
+                    {loading ? '保存中...' : '保存'}
                   </button>
                 </div>
               </form>
