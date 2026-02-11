@@ -12,6 +12,30 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showResetForm, setShowResetForm] = useState(false);
+
+  // 密码强度检查
+  const checkPasswordStrength = (pwd: string) => {
+    if (pwd.length < 6) {
+      setPasswordStrength('weak');
+    } else if (pwd.length < 10 || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+      setPasswordStrength('medium');
+    } else {
+      setPasswordStrength('strong');
+    }
+  };
+
+  // 处理密码输入变化
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    checkPasswordStrength(newPassword);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,18 +119,127 @@ const LoginPage: React.FC = () => {
             </button>
           </div>
 
-          {showForgotPassword ? (
+          {showResetForm ? (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              setError('');
+              
+              if (newPassword !== confirmPassword) {
+                setError('Passwords do not match');
+                setLoading(false);
+                return;
+              }
+              
+              try {
+                await api.request('/auth/reset-password', {
+                  method: 'POST',
+                  body: JSON.stringify({ token: resetToken, new_password: newPassword }),
+                });
+                alert('Password reset successfully!');
+                setShowResetForm(false);
+                setShowForgotPassword(false);
+                setResetToken('');
+                setNewPassword('');
+                setConfirmPassword('');
+              } catch (err) {
+                setError('Failed to reset password. Please check your token and try again.');
+                console.error('Reset password error:', err);
+              } finally {
+                setLoading(false);
+              }
+            }} className="space-y-6">
+              <h3 className="text-xl font-bold dark:text-white mb-4">Reset Password</h3>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Reset Token</label>
+                <input
+                  type="text"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  placeholder="Enter reset token"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">New Password</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Confirm New Password</label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+              
+              {error && (
+                <div className="text-red-500 text-sm mt-2">{error}</div>
+              )}
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? 'Resetting...' : 'Reset Password'} 
+                <span className="material-symbols-outlined text-base">lock_reset</span>
+              </button>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowResetForm(false)}
+                  className="flex-1 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResetForm(false);
+                    setShowForgotPassword(false);
+                  }}
+                  className="flex-1 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </form>
+          ) : showForgotPassword ? (
             <form onSubmit={async (e) => {
               e.preventDefault();
               setLoading(true);
               setError('');
               try {
-                await api.request('/auth/forgot-password', {
+                const response = await api.request('/auth/forgot-password', {
                   method: 'POST',
                   body: JSON.stringify({ email }),
                 });
-                alert('Password reset email sent!');
-                setShowForgotPassword(false);
+                
+                // For testing purposes, show the reset token
+                if (response.reset_token) {
+                  alert(`Password reset email sent!\nReset token: ${response.reset_token}`);
+                  setResetToken(response.reset_token);
+                  setShowResetForm(true);
+                } else {
+                  alert('Password reset email sent!');
+                  setShowForgotPassword(false);
+                }
               } catch (err) {
                 setError('Failed to send password reset email. Please try again.');
                 console.error('Forgot password error:', err);
@@ -136,13 +269,22 @@ const LoginPage: React.FC = () => {
                 {loading ? 'Sending...' : 'Send Reset Email'} 
                 <span className="material-symbols-outlined text-base">mail</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setShowForgotPassword(false)}
-                className="w-full border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
-              >
-                Back to Login
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(false)}
+                  className="flex-1 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  Back to Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowResetForm(true)}
+                  className="flex-1 border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                >
+                  Enter Reset Token
+                </button>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -188,14 +330,48 @@ const LoginPage: React.FC = () => {
                     </button>
                   )}
                 </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={handlePasswordChange}
+                    className="w-full px-4 py-4 pr-12 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <span className="material-symbols-outlined">
+                      {showPassword ? "visibility_off" : "visibility"}
+                    </span>
+                  </button>
+                </div>
+                {/* Password Strength Indicator */}
+                {!isLogin && password && (
+                  <div className="mt-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-slate-500">Password Strength</span>
+                      <span className={`text-xs font-medium ${
+                        passwordStrength === 'strong' ? 'text-green-500' :
+                        passwordStrength === 'medium' ? 'text-yellow-500' : 'text-red-500'
+                      }`}>
+                        {passwordStrength === 'strong' ? 'Strong' :
+                         passwordStrength === 'medium' ? 'Medium' : 'Weak'}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-zinc-700 rounded-full h-1.5">
+                      <div 
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          passwordStrength === 'strong' ? 'bg-green-500 w-full' :
+                          passwordStrength === 'medium' ? 'bg-yellow-500 w-2/3' : 'bg-red-500 w-1/3'
+                        }`}
+                      ></div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Error Message */}

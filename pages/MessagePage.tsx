@@ -364,14 +364,16 @@ const MessagePage: React.FC = () => {
         // 尝试通过API添加好友
         const newFriend = await api.addFriend(newFriendEmail);
         if (newFriend) {
+          const typedFriend = newFriend as any;
           const newContact: Contact = {
-            id: newFriend.id,
-            name: newFriend.name,
-            avatar: newFriend.avatar,
-            status: newFriend.isOnline ? 'online' : 'offline',
-            lastMessage: newFriend.lastMessage || '',
-            lastMessageTime: newFriend.lastMessageTime || '',
-            unread: false
+            id: typedFriend.id,
+            name: typedFriend.name,
+            avatar: typedFriend.avatar,
+            status: typedFriend.isOnline ? 'online' : 'offline',
+            lastMessage: typedFriend.lastMessage || '',
+            lastMessageTime: typedFriend.lastMessageTime || '',
+            unread: false,
+            type: 'user'
           };
           setContacts([newContact, ...contacts]);
         } else {
@@ -383,7 +385,8 @@ const MessagePage: React.FC = () => {
             status: 'offline',
             lastMessage: '',
             lastMessageTime: '',
-            unread: false
+            unread: false,
+            type: 'user'
           };
           setContacts([newContact, ...contacts]);
         }
@@ -397,7 +400,8 @@ const MessagePage: React.FC = () => {
           status: 'offline',
           lastMessage: '',
           lastMessageTime: '',
-          unread: false
+          unread: false,
+          type: 'user'
         };
         setContacts([newContact, ...contacts]);
       } finally {
@@ -420,7 +424,8 @@ const MessagePage: React.FC = () => {
         status: 'offline',
         lastMessage: '',
         lastMessageTime: '',
-        unread: false
+        unread: false,
+        type: 'user'
       };
       setContacts([newContact, ...contacts]);
       setFriendRequests(friendRequests.filter(r => r.id !== requestId));

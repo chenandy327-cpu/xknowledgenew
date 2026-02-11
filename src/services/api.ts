@@ -628,7 +628,7 @@ class ApiService {
     if (USE_MOCK_DATA) {
       // 模拟获取私信
       return Promise.resolve(mockData.messages.filter(msg => 
-        msg.senderId === userId || msg.receiverId === userId
+        msg.senderId === userId
       ));
     }
     return this.request(`/messages/private/${userId}`);

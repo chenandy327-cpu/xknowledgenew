@@ -194,14 +194,15 @@ const ProfilePage: React.FC = () => {
       const filesToUpload = Array.from(files).slice(0, maxImages - checkinImages.length);
       
       filesToUpload.forEach((file) => {
+        const typedFile = file as File;
         // 检查文件大小
-        if (file.size > 5 * 1024 * 1024) { // 5MB 限制
+        if (typedFile.size > 5 * 1024 * 1024) { // 5MB 限制
           alert('每张图片大小不能超过5MB');
           return;
         }
         
         // 检查文件类型
-        if (!file.type.startsWith('image/')) {
+        if (!typedFile.type.startsWith('image/')) {
           alert('只支持图片文件');
           return;
         }
@@ -218,7 +219,7 @@ const ProfilePage: React.FC = () => {
             }
           }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(typedFile);
       });
     }
   };
