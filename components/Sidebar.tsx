@@ -8,7 +8,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onOpenCreate }) => {
-  const { toggleTheme, theme, isAdmin } = useApp();
+  const { toggleTheme, theme, isAdmin, logout } = useApp();
 
   const navItems = [
     { to: '/', icon: 'explore', label: '发现' },
@@ -97,6 +97,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenCreate }) => {
             <p className="text-[10px] text-slate-400">Pro Member</p>
           </div>
         </div>
+        
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center lg:justify-start gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 rounded-xl transition-all"
+        >
+          <span className="material-symbols-outlined">logout</span>
+          <span className="hidden lg:block font-medium">退出登录</span>
+        </button>
       </div>
     </aside>
   );
