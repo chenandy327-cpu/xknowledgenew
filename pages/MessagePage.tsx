@@ -261,7 +261,7 @@ const MessagePage: React.FC = () => {
                 id: (Date.now() + 1).toString(),
                 contactId: activeContact,
                 sender: 'other',
-                content: replyContent,
+                content: replyContent as string,
                 time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
                 status: 'delivered'
               };

@@ -232,9 +232,10 @@ const LoginPage: React.FC = () => {
                 });
                 
                 // For testing purposes, show the reset token
-                if (response.reset_token) {
-                  alert(`Password reset email sent!\nReset token: ${response.reset_token}`);
-                  setResetToken(response.reset_token);
+                const typedResponse = response as any;
+                if (typedResponse.reset_token) {
+                  alert(`Password reset email sent!\nReset token: ${typedResponse.reset_token}`);
+                  setResetToken(typedResponse.reset_token);
                   setShowResetForm(true);
                 } else {
                   alert('Password reset email sent!');
