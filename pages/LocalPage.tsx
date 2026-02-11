@@ -172,6 +172,16 @@ const LocalPage: React.FC = () => {
     }
   };
 
+  // 删除项目
+  const deleteProject = (projectId: string) => {
+    if (window.confirm('确定要删除这个活动吗？')) {
+      const updatedProjects = projects.filter(project => project.id !== projectId);
+      setProjects(updatedProjects);
+      // 清除相关的参与者数据
+      localStorage.removeItem(`project_${projectId}_participants`);
+    }
+  };
+
   // 管理参与状态
   const updateParticipantStatus = (participantId: string, status: 'accepted' | 'pending') => {
     if (selectedProject) {
@@ -490,7 +500,10 @@ const LocalPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex gap-4">
-                <button onClick={() => setShowProjectDetailModal(false)} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition-all">关闭</button>
+                {selectedProject.creator === 'You' && (
+                  <button onClick={() => deleteProject(selectedProject.id)} className="flex-1 py-4 text-red-500 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all">删除活动</button>
+                )}
+                <button onClick={() => setShowProjectDetailModal(false)} className={`flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition-all ${selectedProject.creator === 'You' ? '' : 'flex-1'}`}>{selectedProject.creator === 'You' ? '取消' : '关闭'}</button>
                 <button onClick={joinProject} className="flex-1 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all">
                   {participants.some(p => p.name === 'You') ? '已报名' : '报名参与'}
                 </button>

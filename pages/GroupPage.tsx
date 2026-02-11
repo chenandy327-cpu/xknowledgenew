@@ -71,6 +71,19 @@ const GroupPage: React.FC = () => {
     }
   };
 
+  // 删除小组
+  const deleteGroup = (group: Group) => {
+    if (window.confirm('确定要删除这个小组吗？')) {
+      const updatedMyGroups = myGroups.filter(g => g.id !== group.id);
+      setMyGroups(updatedMyGroups);
+      // 从推荐小组中也删除
+      const updatedRecommendedGroups = recommendedGroups.filter(g => g.id !== group.id);
+      setRecommendedGroups(updatedRecommendedGroups);
+      // 保存到本地存储
+      localStorage.setItem('myGroups', JSON.stringify(updatedMyGroups));
+    }
+  };
+
   // 从本地存储加载数据
   useEffect(() => {
     const savedMyGroups = localStorage.getItem('myGroups');
@@ -112,7 +125,7 @@ const GroupPage: React.FC = () => {
           <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 px-1">我的小组</h2>
           <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1">
             {myGroups.map((group) => (
-              <div key={group.id} className="flex-shrink-0 w-64 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-primary/5 hover:border-primary/20 transition-all cursor-pointer shadow-sm flex items-center gap-4">
+              <div key={group.id} className="flex-shrink-0 w-64 bg-white dark:bg-zinc-900 p-6 rounded-[2rem] border border-primary/5 hover:border-primary/20 transition-all cursor-pointer shadow-sm flex items-center gap-4 relative">
                 <div className="w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center text-3xl shadow-inner">
                   {group.icon}
                 </div>
@@ -120,6 +133,13 @@ const GroupPage: React.FC = () => {
                   <h3 className="font-bold text-sm mb-1 truncate">{group.name}</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase">{group.members} Members</p>
                 </div>
+                <button 
+                  onClick={() => deleteGroup(group)}
+                  className="absolute top-4 right-4 w-8 h-8 bg-red-500/10 flex items-center justify-center rounded-full hover:bg-red-500/20 transition-all"
+                  title="删除小组"
+                >
+                  <span className="material-symbols-outlined text-red-500 text-sm">delete</span>
+                </button>
               </div>
             ))}
           </div>

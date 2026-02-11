@@ -188,6 +188,12 @@ const MessagePage: React.FC = () => {
   ]);
   const [showAddFriendModal, setShowAddFriendModal] = useState(false);
   const [newFriendEmail, setNewFriendEmail] = useState('');
+  const [showAddAgentModal, setShowAddAgentModal] = useState(false);
+  const [newAgent, setNewAgent] = useState({
+    name: '',
+    category: '学习',
+    description: ''
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   // 过滤联系人
@@ -394,6 +400,28 @@ const MessagePage: React.FC = () => {
     localStorage.setItem('friendRequests', JSON.stringify(friendRequests.filter(r => r.id !== requestId)));
   };
 
+  // 添加智能体
+  const addAgent = () => {
+    if (newAgent.name) {
+      const newContact: Contact = {
+        id: `agent-${Date.now()}`,
+        name: newAgent.name,
+        avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 100)}/100/100`,
+        status: 'online',
+        lastMessage: newAgent.description || '你好！我是你的智能助手，有什么可以帮助你的？',
+        lastMessageTime: '今天',
+        unread: false,
+        type: 'agent',
+        agentCategory: newAgent.category
+      };
+      setContacts([newContact, ...contacts]);
+      setShowAddAgentModal(false);
+      setNewAgent({ name: '', category: '学习', description: '' });
+      // 保存到本地存储
+      localStorage.setItem('contacts', JSON.stringify([newContact, ...contacts]));
+    }
+  };
+
   // 从API加载数据
   useEffect(() => {
     const loadData = async () => {
@@ -550,12 +578,18 @@ const MessagePage: React.FC = () => {
           ))}
         </div>
         
-        <div className="p-4 border-t border-primary/5">
+        <div className="p-4 border-t border-primary/5 space-y-3">
           <button 
             onClick={() => setShowAddFriendModal(true)}
             className="w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-primary/20 transition-all"
           >
             + 添加好友
+          </button>
+          <button 
+            onClick={() => setShowAddAgentModal(true)}
+            className="w-full py-3 bg-blue-500 text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-200 transition-all"
+          >
+            + 添加智能体
           </button>
         </div>
       </aside>
@@ -733,6 +767,67 @@ const MessagePage: React.FC = () => {
                   className="flex-1 py-4 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/30 hover:scale-105 transition-all"
                 >
                   创建
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Agent Modal */}
+      {showAddAgentModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20">
+            <h2 className="text-2xl font-black mb-8 tracking-tighter">添加智能体</h2>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">智能体名称</label>
+                <input 
+                  type="text"
+                  placeholder="输入智能体名称..."
+                  value={newAgent.name}
+                  onChange={(e) => setNewAgent({...newAgent, name: e.target.value})}
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">智能体领域</label>
+                <select 
+                  value={newAgent.category}
+                  onChange={(e) => setNewAgent({...newAgent, category: e.target.value})}
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                >
+                  <option value="学习">学习</option>
+                  <option value="技术">技术</option>
+                  <option value="创意">创意</option>
+                  <option value="职业">职业</option>
+                  <option value="健康">健康</option>
+                  <option value="财务">财务</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">智能体描述</label>
+                <textarea 
+                  placeholder="输入智能体描述..."
+                  value={newAgent.description}
+                  onChange={(e) => setNewAgent({...newAgent, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                ></textarea>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button 
+                  onClick={() => setShowAddAgentModal(false)}
+                  className="flex-1 py-4 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={addAgent}
+                  className="flex-1 py-4 bg-blue-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-30 hover:scale-105 transition-all"
+                >
+                  添加智能体
                 </button>
               </div>
             </div>

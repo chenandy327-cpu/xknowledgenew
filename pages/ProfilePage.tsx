@@ -108,6 +108,8 @@ const ProfilePage: React.FC = () => {
   });
   const [customCategory, setCustomCategory] = useState('');
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: string}>({}); // 存储上传的文件URL
+  const [uploadProgress, setUploadProgress] = useState<number>(0); // 上传进度
   const [newCheckin, setNewCheckin] = useState({
     mood: 'good' as 'great' | 'good' | 'normal' | 'tired' | 'sad',
     content: ''
@@ -135,6 +137,46 @@ const ProfilePage: React.FC = () => {
   // 计算当前连续打卡天数
   const currentStreak = checkins.length > 0 ? checkins[0].streak : 0;
 
+  // 处理文件上传
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 检查文件大小
+      if (file.size > 10 * 1024 * 1024) { // 10MB 限制
+        alert('文件大小不能超过10MB');
+        return;
+      }
+      
+      // 检查文件类型
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      if (!isImage && !isVideo) {
+        alert('只支持图片和视频文件');
+        return;
+      }
+      
+      // 模拟上传进度
+      setUploadProgress(0);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const fileUrl = event.target.result as string;
+          setUploadedFiles({...uploadedFiles, cover: fileUrl});
+          // 模拟上传进度
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            setUploadProgress(progress);
+            if (progress >= 100) {
+              clearInterval(interval);
+            }
+          }, 100);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // 处理添加作品集
   const handleAddItem = () => {
     if (newItem.title && newItem.content) {
@@ -144,7 +186,7 @@ const ProfilePage: React.FC = () => {
         title: newItem.title!,
         category: category || 'AI & UI',
         type: newItem.type || 'image',
-        cover: `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
+        cover: uploadedFiles.cover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
         content: newItem.content!,
         date: new Date().toLocaleDateString()
       };
@@ -153,6 +195,8 @@ const ProfilePage: React.FC = () => {
       setNewItem({ title: '', category: 'AI & UI', type: 'image', content: '' });
       setCustomCategory('');
       setUseCustomCategory(false);
+      setUploadedFiles({});
+      setUploadProgress(0);
       // 添加到动态
       addActivity('post', `发布了新作品：${item.title}`);
       // 保存到本地存储
@@ -585,6 +629,42 @@ const ProfilePage: React.FC = () => {
                   value={newItem.title}
                   onChange={(e) => setNewItem({...newItem, title: e.target.value})}
                 />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">封面上传</label>
+                {uploadedFiles.cover ? (
+                  <div className="relative">
+                    <img 
+                      src={uploadedFiles.cover} 
+                      alt="Cover Preview" 
+                      className="w-full h-48 object-cover rounded-2xl"
+                    />
+                    {uploadProgress < 100 && (
+                      <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center">
+                        <div className="text-white font-bold">上传中... {uploadProgress}%</div>
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setUploadedFiles({})}
+                      className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-all"
+                    >
+                      <span className="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="block border-2 border-dashed border-primary/30 rounded-2xl p-8 text-center cursor-pointer hover:border-primary transition-all">
+                    <input 
+                      type="file" 
+                      accept="image/*,video/*" 
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    <span className="material-symbols-outlined text-4xl text-primary/50 mb-3">upload_file</span>
+                    <p className="text-sm font-bold text-slate-500">点击或拖拽上传封面</p>
+                    <p className="text-xs text-slate-400 mt-2">支持 JPG、PNG、MP4 格式，最大 10MB</p>
+                  </label>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-6">
