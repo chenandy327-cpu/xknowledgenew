@@ -1,17 +1,82 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '@api';
+
+interface Course {
+  id: string;
+  title: string;
+  instructor: string;
+  progress: number;
+  completed: boolean;
+  cover: string;
+  type: 'live' | 'recorded';
+  description: string;
+  startTime?: string;
+  duration?: string;
+  enrolled?: boolean;
+}
+
+interface Comment {
+  id: string;
+  courseId: string;
+  user: string;
+  content: string;
+  time: string;
+}
 
 const CoursePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('mine');
   const [heatmapData, setHeatmapData] = useState<number[]>(
     Array.from({ length: 120 }).map(() => Math.floor(Math.random() * 5))
   );
-
-  const courses = [
-    { title: '量化分析进阶：模型与风控', instructor: 'Dr. Alan Chen', progress: 45, completed: false, cover: 'https://picsum.photos/id/180/400/300' },
-    { title: 'UI/UX 深度思维体系', instructor: 'Sarah Wang', progress: 100, completed: true, cover: 'https://picsum.photos/id/181/400/300' },
-    { title: '现代物理学基础：量子力学', instructor: 'Prof. Zhao', progress: 12, completed: false, cover: 'https://picsum.photos/id/182/400/300' },
-  ];
+  const [courses, setCourses] = useState<Course[]>([
+    { 
+      id: '1',
+      title: '量化分析进阶：模型与风控', 
+      instructor: 'Dr. Alan Chen', 
+      progress: 45, 
+      completed: false, 
+      cover: 'https://picsum.photos/id/180/400/300',
+      type: 'recorded',
+      description: '深入学习量化分析的高级模型和风险控制策略',
+      duration: '12小时'
+    },
+    { 
+      id: '2',
+      title: 'UI/UX 深度思维体系', 
+      instructor: 'Sarah Wang', 
+      progress: 100, 
+      completed: true, 
+      cover: 'https://picsum.photos/id/181/400/300',
+      type: 'recorded',
+      description: '构建系统化的UI/UX设计思维体系',
+      duration: '8小时'
+    },
+    { 
+      id: '3',
+      title: '现代物理学基础：量子力学', 
+      instructor: 'Prof. Zhao', 
+      progress: 12, 
+      completed: false, 
+      cover: 'https://picsum.photos/id/182/400/300',
+      type: 'live',
+      description: '从基础概念到前沿应用的量子力学课程',
+      startTime: '2024-12-01 19:00',
+      duration: '10小时'
+    },
+  ]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newCourse, setNewCourse] = useState({
+    title: '',
+    instructor: 'You',
+    type: 'recorded' as 'live' | 'recorded',
+    description: '',
+    startTime: '',
+    duration: ''
+  });
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
 
   const toggleHeatmapLevel = (index: number) => {
     const newData = [...heatmapData];
@@ -30,6 +95,89 @@ const CoursePage: React.FC = () => {
     return colors[level];
   };
 
+  // 创建课程
+  const handleCreateCourse = () => {
+    if (newCourse.title && newCourse.description) {
+      const course: Course = {
+        id: Date.now().toString(),
+        title: newCourse.title,
+        instructor: newCourse.instructor,
+        progress: 0,
+        completed: false,
+        cover: `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/400/300`,
+        type: newCourse.type,
+        description: newCourse.description,
+        startTime: newCourse.startTime,
+        duration: newCourse.duration
+      };
+      setCourses([course, ...courses]);
+      setIsCreating(false);
+      setNewCourse({
+        title: '',
+        instructor: 'You',
+        type: 'recorded',
+        description: '',
+        startTime: '',
+        duration: ''
+      });
+      // 保存到本地存储
+      localStorage.setItem('courses', JSON.stringify([course, ...courses]));
+    }
+  };
+
+  // 加入课程
+  const joinCourse = (course: Course) => {
+    const updatedCourse = { ...course, enrolled: true };
+    setCourses(courses.map(c => c.id === course.id ? updatedCourse : c));
+    // 保存到本地存储
+    localStorage.setItem('courses', JSON.stringify(courses.map(c => c.id === course.id ? updatedCourse : c)));
+  };
+
+  // 查看课程详情
+  const viewCourseDetails = (course: Course) => {
+    setSelectedCourse(course);
+    // 加载课程评论
+    setComments([
+      {
+        id: '1',
+        courseId: course.id,
+        user: 'Student 1',
+        content: '这门课程非常棒！',
+        time: '2小时前'
+      },
+      {
+        id: '2',
+        courseId: course.id,
+        user: 'Student 2',
+        content: '老师讲解得很详细，容易理解。',
+        time: '5小时前'
+      }
+    ]);
+  };
+
+  // 提交评论
+  const submitComment = () => {
+    if (newComment && selectedCourse) {
+      const comment: Comment = {
+        id: Date.now().toString(),
+        courseId: selectedCourse.id,
+        user: 'You',
+        content: newComment,
+        time: '刚刚'
+      };
+      setComments([comment, ...comments]);
+      setNewComment('');
+    }
+  };
+
+  // 从本地存储加载数据
+  useEffect(() => {
+    const savedCourses = localStorage.getItem('courses');
+    if (savedCourses) {
+      setCourses(JSON.parse(savedCourses));
+    }
+  }, []);
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen">
       <header className="mb-16">
@@ -38,19 +186,27 @@ const CoursePage: React.FC = () => {
             <h1 className="text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tighter">COURSE_CENTER</h1>
             <p className="text-slate-500 font-medium">构建你的系统化知识大厦</p>
           </div>
-          <nav className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-primary/5 shadow-sm">
-            {['explore', 'mine', 'certificates'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-8 py-3 rounded-xl text-sm font-black transition-all ${
-                  activeTab === tab ? 'bg-primary text-white shadow-xl' : 'text-slate-500 hover:text-primary'
-                }`}
-              >
-                {tab === 'explore' ? '发现课程' : tab === 'mine' ? '学习档案' : '学术证书'}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsCreating(true)}
+              className="px-6 py-3 bg-primary text-white rounded-2xl text-sm font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"
+            >
+              创建课程
+            </button>
+            <nav className="flex items-center gap-2 bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-primary/5 shadow-sm">
+              {['explore', 'mine', 'certificates'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-3 rounded-xl text-sm font-black transition-all ${
+                    activeTab === tab ? 'bg-primary text-white shadow-xl' : 'text-slate-500 hover:text-primary'
+                  }`}
+                >
+                  {tab === 'explore' ? '发现课程' : tab === 'mine' ? '学习档案' : '学术证书'}
+                </button>
+              ))}
+            </nav>
+          </div>
         </div>
 
         {/* Interactive Heatmap Section */}
@@ -100,8 +256,8 @@ const CoursePage: React.FC = () => {
 
       {/* Course Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
-        {(activeTab === 'explore' ? courses : courses.filter(c => activeTab === 'mine' ? true : c.completed)).map((course, i) => (
-          <div key={i} className="group bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden border border-primary/5 hover:shadow-[0_40px_80px_rgba(127,19,236,0.15)] transition-all flex flex-col">
+        {(activeTab === 'explore' ? courses : courses.filter(c => activeTab === 'mine' ? true : c.completed)).map((course) => (
+          <div key={course.id} className="group bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden border border-primary/5 hover:shadow-[0_40px_80px_rgba(127,19,236,0.15)] transition-all flex flex-col">
             <div className="h-56 relative overflow-hidden">
               <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src={course.cover} alt="Course" />
               {course.completed && (
@@ -109,13 +265,29 @@ const CoursePage: React.FC = () => {
                   <span className="material-symbols-outlined fill-1">verified</span>
                 </div>
               )}
+              <div className="absolute top-6 left-6 bg-white/90 dark:bg-zinc-800/90 text-primary text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-wider shadow-xl">
+                {course.type === 'live' ? '直播课程' : '录播课程'}
+              </div>
             </div>
             <div className="p-10 flex-1 flex flex-col">
-              <h3 className="font-black text-xl mb-6 group-hover:text-primary transition-colors line-clamp-2 leading-tight uppercase tracking-tight">{course.title}</h3>
-              <div className="flex items-center gap-3 mb-8">
-                <img className="w-8 h-8 rounded-full border border-primary/10" src={`https://picsum.photos/id/${80 + i}/50/50`} alt="Instructor" />
+              <h3 className="font-black text-xl mb-3 group-hover:text-primary transition-colors line-clamp-2 leading-tight uppercase tracking-tight">{course.title}</h3>
+              <p className="text-slate-500 text-sm mb-6 line-clamp-2">{course.description}</p>
+              <div className="flex items-center gap-3 mb-6">
+                <img className="w-8 h-8 rounded-full border border-primary/10" src={`https://picsum.photos/id/${80 + parseInt(course.id)}/50/50`} alt="Instructor" />
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{course.instructor}</span>
               </div>
+              {course.type === 'live' && course.startTime && (
+                <div className="flex items-center gap-2 text-xs text-primary mb-6">
+                  <span className="material-symbols-outlined text-sm">event</span>
+                  {course.startTime}
+                </div>
+              )}
+              {course.duration && (
+                <div className="flex items-center gap-2 text-xs text-slate-400 mb-6">
+                  <span className="material-symbols-outlined text-sm">access_time</span>
+                  {course.duration}
+                </div>
+              )}
 
               {activeTab !== 'explore' && (
                 <div className="mt-auto mb-8">
@@ -129,15 +301,201 @@ const CoursePage: React.FC = () => {
                 </div>
               )}
 
-              <button className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-md ${
-                course.completed ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-primary/5 text-primary hover:bg-primary hover:text-white'
-              }`}>
-                {course.completed ? 'Get Certificate' : 'Continue Mission'}
-              </button>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => viewCourseDetails(course)}
+                  className="flex-1 py-4 bg-primary/10 text-primary rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all hover:bg-primary hover:text-white"
+                >
+                  查看详情
+                </button>
+                {!course.enrolled && activeTab === 'explore' && (
+                  <button 
+                    onClick={() => joinCourse(course)}
+                    className="flex-1 py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all hover:shadow-lg hover:shadow-primary/20"
+                  >
+                    加入课程
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Create Course Modal */}
+      {isCreating && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 className="text-3xl font-black mb-10 tracking-tighter">创建新课程</h2>
+            
+            <div className="space-y-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程标题</label>
+                <input 
+                  autoFocus
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  placeholder="输入课程标题..."
+                  value={newCourse.title}
+                  onChange={(e) => setNewCourse({...newCourse, title: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程类型</label>
+                <div className="flex gap-2 p-1 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-primary/5">
+                  {['recorded', 'live'].map(type => (
+                    <button 
+                      key={type}
+                      onClick={() => setNewCourse({...newCourse, type: type as 'live' | 'recorded'})}
+                      className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${newCourse.type === type ? 'bg-primary text-white shadow-lg' : 'text-slate-400'}`}
+                    >
+                      {type === 'recorded' ? '录播课程' : '直播课程'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {newCourse.type === 'live' && (
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">直播时间</label>
+                  <input 
+                    type="datetime-local"
+                    className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                    value={newCourse.startTime}
+                    onChange={(e) => setNewCourse({...newCourse, startTime: e.target.value})}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程时长</label>
+                <input 
+                  type="text"
+                  placeholder="例如：10小时"
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  value={newCourse.duration}
+                  onChange={(e) => setNewCourse({...newCourse, duration: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">课程描述</label>
+                <textarea 
+                  className="w-full px-6 py-6 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-medium leading-relaxed"
+                  placeholder="描述你的课程..."
+                  rows={4}
+                  value={newCourse.description}
+                  onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-6 pt-6">
+                <button onClick={() => setIsCreating(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
+                <button onClick={handleCreateCourse} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">创建课程</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Course Detail Modal */}
+      {selectedCourse && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-4xl bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <div className="flex justify-between items-center mb-10">
+              <h2 className="text-3xl font-black tracking-tighter">{selectedCourse.title}</h2>
+              <button 
+                onClick={() => setSelectedCourse(null)}
+                className="w-12 h-12 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center hover:bg-slate-200 dark:hover:bg-zinc-700 transition-all"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className="space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div>
+                  <img className="w-full h-80 object-cover rounded-[2rem] mb-6" src={selectedCourse.cover} alt="Course Cover" />
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <img className="w-10 h-10 rounded-full border border-primary/10" src={`https://picsum.photos/id/${80 + parseInt(selectedCourse.id)}/50/50`} alt="Instructor" />
+                      <div>
+                        <p className="text-sm font-bold">{selectedCourse.instructor}</p>
+                        <p className="text-xs text-slate-400">Instructor</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="material-symbols-outlined text-sm">event</span>
+                        {selectedCourse.type === 'live' ? selectedCourse.startTime : '录播课程'}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span className="material-symbols-outlined text-sm">access_time</span>
+                        {selectedCourse.duration}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black mb-6">课程描述</h3>
+                  <p className="text-slate-500 text-sm mb-8 leading-relaxed">{selectedCourse.description}</p>
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-widest text-slate-400">课程内容</h4>
+                    <div className="space-y-3">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">{i}</div>
+                          <div>
+                            <p className="text-sm font-bold">第 {i} 节：{selectedCourse.title} - 主题 {i}</p>
+                            <p className="text-xs text-slate-400">45分钟</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t border-primary/5 pt-10">
+                <h3 className="text-xl font-black mb-6">课程讨论</h3>
+                <div className="space-y-6 mb-8">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-4">
+                      <img className="w-10 h-10 rounded-full border border-primary/10 flex-shrink-0" src={`https://picsum.photos/id/${100 + parseInt(comment.id)}/50/50`} alt="User" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="text-sm font-bold">{comment.user}</p>
+                          <p className="text-xs text-slate-400">{comment.time}</p>
+                        </div>
+                        <p className="text-slate-500 text-sm">{comment.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <img className="w-10 h-10 rounded-full border border-primary/10 flex-shrink-0" src="https://picsum.photos/id/64/50/50" alt="You" />
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      placeholder="写下你的评论..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && submitComment()}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-primary/5 focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                    />
+                  </div>
+                  <button 
+                    onClick={submitComment}
+                    className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:shadow-lg hover:shadow-primary/20"
+                  >
+                    发送
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
