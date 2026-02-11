@@ -147,6 +147,10 @@ class ApiService {
           }
         } else if (endpoint.includes('/auth/register')) {
           const body = JSON.parse(options.body as string);
+          // 检查邮箱是否已存在
+          if (mockData.users[body.email]) {
+            throw new Error('Email already exists');
+          }
           const newUser = {
             user_id: Date.now().toString(),
             email: body.email,
@@ -163,12 +167,25 @@ class ApiService {
             name: newUser.name
           } as T);
         } else if (endpoint.includes('/users/me')) {
-          resolve({
-            user_id: '1',
-            email: 'explorer@knowledge.art',
-            name: 'Knowledge Explorer',
-            avatar: 'https://picsum.photos/id/1005/100/100'
-          } as T);
+          // 从token中获取当前用户
+          const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+          if (currentUserEmail) {
+            const user = mockData.users[currentUserEmail];
+            resolve({
+              user_id: user.user_id,
+              email: user.email,
+              name: user.name,
+              avatar: user.avatar
+            } as T);
+          } else {
+            // 默认用户
+            resolve({
+              user_id: '1',
+              email: 'explorer@knowledge.art',
+              name: 'Knowledge Explorer',
+              avatar: 'https://picsum.photos/id/1005/100/100'
+            } as T);
+          }
         } else if (endpoint.includes('/content/hotspots')) {
           resolve(mockData.hotspots as T);
         } else if (endpoint.includes('/content/hot-chats')) {
@@ -231,11 +248,15 @@ class ApiService {
 
   async sendMessage(friendId: string, content: string) {
     if (USE_MOCK_DATA) {
+      // 获取当前用户信息
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+      
       const newMessage = {
         id: Date.now().toString(),
-        senderId: '1',
-        senderName: 'Knowledge Explorer',
-        senderAvatar: 'https://picsum.photos/id/1005/100/100',
+        senderId: currentUser.user_id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.avatar,
         content,
         timestamp: new Date().toISOString(),
         isRead: false

@@ -29,18 +29,45 @@ export const useApp = () => {
 };
 
 const App: React.FC = () => {
-  const [theme, setTheme] = useState<AppTheme>(AppTheme.LIGHT);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Initialize state from localStorage
+  const [theme, setTheme] = useState<AppTheme>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? (savedTheme as AppTheme) : AppTheme.LIGHT;
+  });
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const savedLoginStatus = localStorage.getItem('isLoggedIn');
+    return savedLoginStatus === 'true';
+  });
+  
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Apply theme on initial load
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === AppTheme.DARK);
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === AppTheme.LIGHT ? AppTheme.DARK : AppTheme.LIGHT;
     setTheme(newTheme);
     document.documentElement.classList.toggle('dark', newTheme === AppTheme.DARK);
+    // Save theme to localStorage
+    localStorage.setItem('theme', newTheme);
   };
 
-  const login = () => setIsLoggedIn(true);
-  const logout = () => setIsLoggedIn(false);
+  const login = () => {
+    setIsLoggedIn(true);
+    // Save login status to localStorage
+    localStorage.setItem('isLoggedIn', 'true');
+  };
+
+  const logout = () => {
+    setIsLoggedIn(false);
+    // Remove login status from localStorage
+    localStorage.removeItem('isLoggedIn');
+    // Remove token from localStorage
+    localStorage.removeItem('token');
+  };
 
   return (
     <AppContext.Provider value={{ theme, toggleTheme, isLoggedIn, login, logout }}>
