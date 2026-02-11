@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../src/services/api';
 
 interface PortfolioItem {
   id: string;
@@ -9,6 +10,23 @@ interface PortfolioItem {
   cover: string;
   content: string;
   date: string;
+}
+
+interface Checkin {
+  id: string;
+  date: string;
+  mood: 'great' | 'good' | 'normal' | 'tired' | 'sad';
+  content: string;
+  streak: number;
+}
+
+interface Activity {
+  id: string;
+  type: 'post' | 'checkin' | 'achievement';
+  content: string;
+  date: string;
+  likes: number;
+  comments: number;
 }
 
 const ProfilePage: React.FC = () => {
@@ -43,14 +61,64 @@ const ProfilePage: React.FC = () => {
       date: '2024.10.15'
     }
   ]);
+  const [checkins, setCheckins] = useState<Checkin[]>([
+    {
+      id: '1',
+      date: '2024-11-15',
+      mood: 'great',
+      content: '今天完成了一个重要的项目，感觉非常有成就感！',
+      streak: 5
+    },
+    {
+      id: '2',
+      date: '2024-11-14',
+      mood: 'good',
+      content: '学习了新的 AI 模型，收获颇丰。',
+      streak: 4
+    }
+  ]);
+  const [activities, setActivities] = useState<Activity[]>([
+    {
+      id: '1',
+      type: 'post',
+      content: '发布了新作品：基于生成式 AI 的情感化交互研究',
+      date: '2024-11-15 14:30',
+      likes: 24,
+      comments: 5
+    },
+    {
+      id: '2',
+      type: 'checkin',
+      content: '连续打卡 5 天！',
+      date: '2024-11-15 09:00',
+      likes: 12,
+      comments: 2
+    }
+  ]);
   
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [newItem, setNewItem] = useState<Partial<PortfolioItem>>({
     title: '',
     category: 'AI & UI',
     type: 'image',
     content: ''
   });
+  const [newCheckin, setNewCheckin] = useState({
+    mood: 'good' as 'great' | 'good' | 'normal' | 'tired' | 'sad',
+    content: ''
+  });
+  const [newPost, setNewPost] = useState('');
+  const [profileData, setProfileData] = useState({
+    name: '林梓安',
+    bio: 'AI 交互研究员 & 业余诗人 | 致力于数字人文研究 | 上海交大交互设计硕士',
+    avatar: 'https://picsum.photos/id/64/300/300'
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const categories = ['All', 'AI & UI', 'Philosophy', 'Design', 'Art'];
 
@@ -58,6 +126,14 @@ const ProfilePage: React.FC = () => {
     ? portfolio 
     : portfolio.filter(item => item.category === activeCategory);
 
+  // 获取今日日期
+  const today = new Date().toISOString().split('T')[0];
+  // 检查今日是否已打卡
+  const hasCheckedInToday = checkins.some(checkin => checkin.date === today);
+  // 计算当前连续打卡天数
+  const currentStreak = checkins.length > 0 ? checkins[0].streak : 0;
+
+  // 处理添加作品集
   const handleAddItem = () => {
     if (newItem.title && newItem.content) {
       const item: PortfolioItem = {
@@ -72,12 +148,162 @@ const ProfilePage: React.FC = () => {
       setPortfolio([item, ...portfolio]);
       setIsAdding(false);
       setNewItem({ title: '', category: 'AI & UI', type: 'image', content: '' });
+      // 添加到动态
+      addActivity('post', `发布了新作品：${item.title}`);
+      // 保存到本地存储
+      localStorage.setItem('portfolio', JSON.stringify([item, ...portfolio]));
     }
   };
 
+  // 处理删除作品集
   const deleteItem = (id: string) => {
     setPortfolio(portfolio.filter(p => p.id !== id));
+    // 保存到本地存储
+    localStorage.setItem('portfolio', JSON.stringify(portfolio.filter(p => p.id !== id)));
   };
+
+  // 处理每日打卡
+  const handleCheckin = () => {
+    if (newCheckin.content) {
+      const streak = hasCheckedInToday ? currentStreak : currentStreak + 1;
+      const checkin: Checkin = {
+        id: Date.now().toString(),
+        date: today,
+        mood: newCheckin.mood,
+        content: newCheckin.content,
+        streak
+      };
+      setCheckins([checkin, ...checkins.filter(c => c.date !== today)]);
+      setIsCheckingIn(false);
+      setNewCheckin({ mood: 'good', content: '' });
+      // 添加到动态
+      addActivity('checkin', `连续打卡 ${streak} 天！`);
+      // 保存到本地存储
+      localStorage.setItem('checkins', JSON.stringify([checkin, ...checkins.filter(c => c.date !== today)]));
+    }
+  };
+
+  // 处理发布动态
+  const handlePost = () => {
+    if (newPost) {
+      const post = newPost;
+      setIsPosting(false);
+      setNewPost('');
+      // 添加到动态
+      addActivity('post', post);
+    }
+  };
+
+  // 添加动态
+  const addActivity = (type: 'post' | 'checkin' | 'achievement', content: string) => {
+    const activity: Activity = {
+      id: Date.now().toString(),
+      type,
+      content,
+      date: new Date().toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      likes: 0,
+      comments: 0
+    };
+    setActivities([activity, ...activities]);
+    // 保存到本地存储
+    localStorage.setItem('activities', JSON.stringify([activity, ...activities]));
+  };
+
+  // 处理更新个人资料
+  const handleUpdateProfile = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await api.updateCurrentUser({
+        name: profileData.name,
+        avatar: profileData.avatar
+      });
+      setSuccess('个人资料更新成功！');
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setIsEditing(false);
+      }, 2000);
+      // 保存到本地存储
+      localStorage.setItem('profileData', JSON.stringify(profileData));
+    } catch (err) {
+      setError('更新失败，请重试');
+      console.error('Update profile error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 从本地存储加载数据
+  useEffect(() => {
+    const savedPortfolio = localStorage.getItem('portfolio');
+    const savedCheckins = localStorage.getItem('checkins');
+    const savedActivities = localStorage.getItem('activities');
+    const savedProfileData = localStorage.getItem('profileData');
+    
+    if (savedPortfolio) {
+      setPortfolio(JSON.parse(savedPortfolio));
+    }
+    if (savedCheckins) {
+      setCheckins(JSON.parse(savedCheckins));
+    }
+    if (savedActivities) {
+      setActivities(JSON.parse(savedActivities));
+    }
+    if (savedProfileData) {
+      setProfileData(JSON.parse(savedProfileData));
+    }
+  }, []);
+
+  // 渲染打卡心情图标
+  const renderMoodIcon = (mood: string) => {
+    switch (mood) {
+      case 'great':
+        return 'emoji_events';
+      case 'good':
+        return 'sentiment_satisfied';
+      case 'normal':
+        return 'sentiment_neutral';
+      case 'tired':
+        return 'sentiment_dissatisfied';
+      case 'sad':
+        return 'sentiment_very_dissatisfied';
+      default:
+        return 'sentiment_satisfied';
+    }
+  };
+
+  // 渲染打卡心情颜色
+  const getMoodColor = (mood: string) => {
+    switch (mood) {
+      case 'great':
+        return 'text-emerald-500';
+      case 'good':
+        return 'text-blue-500';
+      case 'normal':
+        return 'text-yellow-500';
+      case 'tired':
+        return 'text-orange-500';
+      case 'sad':
+        return 'text-red-500';
+      default:
+        return 'text-blue-500';
+    }
+  };
+
+  // 生成最近30天的日期数组
+  const generateDates = () => {
+    const dates = [];
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    return dates;
+  };
+
+  const recentDates = generateDates();
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto min-h-screen pb-32">
@@ -90,19 +316,20 @@ const ProfilePage: React.FC = () => {
         <div className="relative -mt-32 px-12">
           <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl p-10 rounded-[3rem] border border-primary/10 shadow-2xl flex flex-col lg:flex-row items-center justify-between gap-10">
             <div className="flex flex-col lg:flex-row items-center gap-10">
-              <img className="w-44 h-44 rounded-[2.5rem] border-8 border-white dark:border-zinc-800 shadow-2xl object-cover -mt-32 hover:scale-105 transition-transform" src="https://picsum.photos/id/64/300/300" alt="Avatar" />
+              <img className="w-44 h-44 rounded-[2.5rem] border-8 border-white dark:border-zinc-800 shadow-2xl object-cover -mt-32 hover:scale-105 transition-transform" src={profileData.avatar} alt="Avatar" />
               <div className="text-center lg:text-left">
-                <h1 className="text-4xl font-black mb-2 tracking-tighter">林梓安 <span className="text-primary text-base font-bold italic ml-2">@zian_lin</span></h1>
-                <p className="text-slate-500 font-bold text-sm max-w-lg mb-6 leading-relaxed">AI 交互研究员 & 业余诗人 | 致力于数字人文研究 | 上海交大交互设计硕士</p>
+                <h1 className="text-4xl font-black mb-2 tracking-tighter">{profileData.name} <span className="text-primary text-base font-bold italic ml-2">@zian_lin</span></h1>
+                <p className="text-slate-500 font-bold text-sm max-w-lg mb-6 leading-relaxed">{profileData.bio}</p>
                 <div className="flex gap-10 justify-center lg:justify-start">
                   <div className="text-center"><span className="block text-2xl font-black text-primary">1.4k</span><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Following</span></div>
                   <div className="text-center"><span className="block text-2xl font-black text-primary">8.2k</span><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Followers</span></div>
                   <div className="text-center"><span className="block text-2xl font-black text-primary">{portfolio.length}</span><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Projects</span></div>
+                  <div className="text-center"><span className="block text-2xl font-black text-primary">{currentStreak}</span><span className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">Streak</span></div>
                 </div>
               </div>
             </div>
             <div className="flex gap-4">
-              <button className="px-10 py-4 bg-primary text-white font-black rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">编辑档案</button>
+              <button onClick={() => setIsEditing(true)} className="px-10 py-4 bg-primary text-white font-black rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">编辑档案</button>
             </div>
           </div>
         </div>
@@ -186,6 +413,157 @@ const ProfilePage: React.FC = () => {
         </div>
       )}
 
+      {/* Checkin View */}
+      {activeTab === 'logs' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+            <h2 className="text-2xl font-black">每日打卡</h2>
+            {!hasCheckedInToday && (
+              <button 
+                onClick={() => setIsCheckingIn(true)}
+                className="flex items-center gap-3 px-8 py-3 bg-primary text-white font-black rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all"
+              >
+                <span className="material-symbols-outlined">add_circle</span>
+                今日打卡
+              </button>
+            )}
+          </div>
+
+          {/* Checkin Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-3xl text-primary">local_fire_department</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">当前连续</h3>
+                  <p className="text-3xl font-black text-primary">{currentStreak} 天</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-3xl text-primary">calendar_month</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">总打卡次数</h3>
+                  <p className="text-3xl font-black text-primary">{checkins.length} 次</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-3xl text-primary">mood</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">最近心情</h3>
+                  <p className={`text-3xl font-black ${getMoodColor(checkins[0]?.mood || 'good')}`}>
+                    <span className="material-symbols-outlined">{renderMoodIcon(checkins[0]?.mood || 'good')}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Checkin Calendar */}
+          <div className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm mb-12">
+            <h3 className="text-lg font-black mb-6">最近 30 天打卡记录</h3>
+            <div className="grid grid-cols-7 gap-2">
+              {['日', '一', '二', '三', '四', '五', '六'].map(day => (
+                <div key={day} className="text-center text-xs font-black text-slate-400 uppercase tracking-widest py-2">{day}</div>
+              ))}
+              {recentDates.map((date, index) => {
+                const checkin = checkins.find(c => c.date === date);
+                return (
+                  <div key={date} className="text-center">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${checkin ? 'bg-primary text-white font-bold' : 'bg-slate-100 dark:bg-zinc-800 text-slate-400'}`}>
+                      {new Date(date).getDate()}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Recent Checkins */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-black mb-6">最近打卡</h3>
+            {checkins.map((checkin) => (
+              <div key={checkin.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm">
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center ${getMoodColor(checkin.mood)}`}>
+                      <span className="material-symbols-outlined text-2xl">{renderMoodIcon(checkin.mood)}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-2">
+                        <h4 className="font-bold">{checkin.date}</h4>
+                        <span className="text-xs font-bold text-slate-400">连续 {checkin.streak} 天</span>
+                      </div>
+                      <p className="text-slate-500">{checkin.content}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Activity View */}
+      {activeTab === 'activity' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+            <h2 className="text-2xl font-black">个人动态</h2>
+            <button 
+              onClick={() => setIsPosting(true)}
+              className="flex items-center gap-3 px-8 py-3 bg-primary text-white font-black rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all"
+            >
+              <span className="material-symbols-outlined">add_circle</span>
+              发布动态
+            </button>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="space-y-8">
+            {activities.map((activity) => (
+              <div key={activity.id} className="bg-white dark:bg-zinc-900 p-8 rounded-[2rem] border border-primary/5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full border-2 border-primary/10 flex-shrink-0">
+                    <img className="w-full h-full rounded-full object-cover" src={profileData.avatar} alt="Avatar" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-bold">{profileData.name}</h4>
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{activity.type === 'post' ? '发布' : activity.type === 'checkin' ? '打卡' : '成就'}</span>
+                      <span className="text-xs text-slate-400 ml-auto">{activity.date}</span>
+                    </div>
+                    <p className="text-slate-500 mb-4">{activity.content}</p>
+                    <div className="flex items-center gap-6">
+                      <button className="flex items-center gap-2 text-xs font-black text-slate-400 hover:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-sm">favorite</span>
+                        {activity.likes} 赞
+                      </button>
+                      <button className="flex items-center gap-2 text-xs font-black text-slate-400 hover:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-sm">comment</span>
+                        {activity.comments} 评论
+                      </button>
+                      <button className="flex items-center gap-2 text-xs font-black text-slate-400 hover:text-primary transition-colors">
+                        <span className="material-symbols-outlined text-sm">share</span>
+                        分享
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Add New Project Modal */}
       {isAdding && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
@@ -245,6 +623,157 @@ const ProfilePage: React.FC = () => {
               <div className="flex gap-6 pt-6">
                 <button onClick={() => setIsAdding(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消发布</button>
                 <button onClick={handleAddItem} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">确认发布</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkin Modal */}
+      {isCheckingIn && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 className="text-3xl font-black mb-10 tracking-tighter">今日打卡</h2>
+            
+            <div className="space-y-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">今天感觉如何？</label>
+                <div className="grid grid-cols-5 gap-3">
+                  {['great', 'good', 'normal', 'tired', 'sad'].map(mood => (
+                    <button 
+                      key={mood}
+                      onClick={() => setNewCheckin({...newCheckin, mood: mood as any})}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                        newCheckin.mood === mood 
+                          ? 'bg-primary text-white shadow-lg' 
+                          : 'bg-slate-50 dark:bg-zinc-800 text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-2xl">{renderMoodIcon(mood)}</span>
+                      <span className="text-xs font-black uppercase tracking-widest">
+                        {mood === 'great' ? '很棒' : 
+                         mood === 'good' ? '不错' : 
+                         mood === 'normal' ? '一般' : 
+                         mood === 'tired' ? '疲惫' : '难过'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">今日感想</label>
+                <textarea 
+                  className="w-full px-6 py-6 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-medium leading-relaxed"
+                  placeholder="分享一下今天的收获或感受..."
+                  rows={4}
+                  value={newCheckin.content}
+                  onChange={(e) => setNewCheckin({...newCheckin, content: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-6 pt-6">
+                <button onClick={() => setIsCheckingIn(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
+                <button onClick={handleCheckin} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">确认打卡</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post Modal */}
+      {isPosting && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 className="text-3xl font-black mb-10 tracking-tighter">发布动态</h2>
+            
+            <div className="space-y-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">动态内容</label>
+                <textarea 
+                  className="w-full px-6 py-6 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-medium leading-relaxed"
+                  placeholder="分享你的想法..."
+                  rows={6}
+                  value={newPost}
+                  onChange={(e) => setNewPost(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-6 pt-6">
+                <button onClick={() => setIsPosting(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
+                <button onClick={handlePost} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">发布</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 className="text-3xl font-black mb-10 tracking-tighter">编辑个人资料</h2>
+            
+            <div className="space-y-8">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <img 
+                    className="w-32 h-32 rounded-[2rem] border-4 border-primary shadow-2xl object-cover"
+                    src={profileData.avatar}
+                    alt="Avatar"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">姓名</label>
+                <input 
+                  autoFocus
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  placeholder="你的姓名..."
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">个人简介</label>
+                <textarea 
+                  className="w-full px-6 py-6 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-medium leading-relaxed"
+                  placeholder="介绍一下自己..."
+                  rows={4}
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">头像 URL</label>
+                <input 
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  placeholder="你的头像 URL..."
+                  value={profileData.avatar}
+                  onChange={(e) => setProfileData({...profileData, avatar: e.target.value})}
+                />
+              </div>
+
+              {error && (
+                <div className="text-red-500 text-sm">{error}</div>
+              )}
+
+              {success && (
+                <div className="text-green-500 text-sm">{success}</div>
+              )}
+
+              <div className="flex gap-6 pt-6">
+                <button onClick={() => setIsEditing(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
+                <button 
+                  onClick={handleUpdateProfile}
+                  disabled={loading}
+                  className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all"
+                >
+                  {loading ? '更新中...' : '更新资料'}
+                </button>
               </div>
             </div>
           </div>

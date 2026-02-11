@@ -62,6 +62,7 @@ class ApiService {
 
   async register(email: string, password: string, name: string) {
     return this.request<{
+      access_token: string;
       user_id: string;
       email: string;
       name: string;
