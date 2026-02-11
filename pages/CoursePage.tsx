@@ -169,12 +169,26 @@ const CoursePage: React.FC = () => {
   };
 
   // 删除课程
-  const deleteCourse = (courseId: string) => {
-    if (window.confirm('确定要删除这门课程吗？')) {
-      const updatedCourses = courses.filter(course => course.id !== courseId);
-      setCourses(updatedCourses);
-      // 保存到本地存储
-      localStorage.setItem('courses', JSON.stringify(updatedCourses));
+  const deleteCourse = async (courseId: string) => {
+    if (window.confirm('确定要删除这门课程吗？删除后将无法恢复。')) {
+      try {
+        // 调用API删除课程
+        await api.deleteCourse(courseId);
+        
+        // 更新本地状态
+        const updatedCourses = courses.filter(course => course.id !== courseId);
+        setCourses(updatedCourses);
+        
+        // 保存到本地存储
+        localStorage.setItem('courses', JSON.stringify(updatedCourses));
+        
+        // 显示删除成功提示
+        alert('课程删除成功！');
+      } catch (error) {
+        console.error('删除课程失败:', error);
+        // 显示删除失败提示
+        alert('删除课程失败，请稍后重试。');
+      }
     }
   };
 

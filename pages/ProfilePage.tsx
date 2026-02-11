@@ -280,7 +280,7 @@ const ProfilePage: React.FC = () => {
   };
 
   // 处理添加作品集
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItem.title && newItem.content) {
       const category = useCustomCategory ? customCategory : (newItem.category || 'AI & UI');
       const item: PortfolioItem = {
@@ -292,6 +292,19 @@ const ProfilePage: React.FC = () => {
         content: newItem.content!,
         date: new Date().toLocaleDateString()
       };
+      
+      try {
+        // 同时添加到发现页面的内容中
+        await api.createContent({
+          title: item.title,
+          description: item.content,
+          category: item.category,
+          cover: item.cover
+        });
+      } catch (error) {
+        console.error('Failed to add content to discovery:', error);
+      }
+      
       setPortfolio([item, ...portfolio]);
       setIsAdding(false);
       setNewItem({ title: '', category: 'AI & UI', type: 'image', content: '' });

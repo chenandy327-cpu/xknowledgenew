@@ -512,6 +512,17 @@ class ApiService {
     });
   }
 
+  // Course Management API
+  async deleteCourse(courseId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟删除课程
+      return Promise.resolve({ success: true, message: '课程删除成功' });
+    }
+    return this.request(`/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Calendar API
   async getUserCalendarEvents(userId: string) {
     return this.request(`/calendar/user/${userId}`);
@@ -544,6 +555,83 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ date, type, content, emoji }),
     });
+  }
+
+  // Social Interaction API
+  async followUser(userId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟关注用户
+      return Promise.resolve({ success: true, message: '关注成功' });
+    }
+    return this.request(`/users/${userId}/follow`, {
+      method: 'POST',
+    });
+  }
+
+  async unfollowUser(userId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟取消关注用户
+      return Promise.resolve({ success: true, message: '取消关注成功' });
+    }
+    return this.request(`/users/${userId}/unfollow`, {
+      method: 'POST',
+    });
+  }
+
+  async likeContent(contentId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟点赞内容
+      return Promise.resolve({ success: true, message: '点赞成功' });
+    }
+    return this.request(`/content/${contentId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  async unlikeContent(contentId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟取消点赞内容
+      return Promise.resolve({ success: true, message: '取消点赞成功' });
+    }
+    return this.request(`/content/${contentId}/unlike`, {
+      method: 'POST',
+    });
+  }
+
+  async sendPrivateMessage(userId: string, content: string) {
+    if (USE_MOCK_DATA) {
+      // 获取当前用户信息
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+      
+      // 模拟发送私信
+      const newMessage = {
+        id: Date.now().toString(),
+        senderId: currentUser.user_id,
+        senderName: currentUser.name,
+        senderAvatar: currentUser.avatar,
+        receiverId: userId,
+        content,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      mockData.messages.push(newMessage);
+      return Promise.resolve(newMessage);
+    }
+    return this.request(`/messages/private`, {
+      method: 'POST',
+      body: JSON.stringify({ receiver_id: userId, content }),
+    });
+  }
+
+  async getPrivateMessages(userId: string) {
+    if (USE_MOCK_DATA) {
+      // 模拟获取私信
+      return Promise.resolve(mockData.messages.filter(msg => 
+        msg.senderId === userId || msg.receiverId === userId
+      ));
+    }
+    return this.request(`/messages/private/${userId}`);
   }
 
   // AI Agent API
