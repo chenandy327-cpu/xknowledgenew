@@ -108,6 +108,34 @@ const mockData = {
     { id: 3, topic: '空间计算中的交互革命', count: '6.2k', trend: 'steady' },
     { id: 4, topic: '从原子到比特：物质数字化', count: '4.8k', trend: 'up' },
     { id: 5, topic: '后人类主义下的艺术创作', count: '3.1k', trend: 'new' },
+  ],
+  courses: [
+    {
+      id: '1',
+      title: 'Introduction to Generative AI',
+      description: 'Learn the fundamentals of generative AI and how to use it in your projects.',
+      instructor: 'Dr. Alan Chen',
+      instructorAvatar: 'https://picsum.photos/id/140/100/100',
+      duration: '10 hours',
+      level: 'Beginner',
+      category: 'AI & Machine Learning',
+      image: 'https://picsum.photos/id/115/600/400',
+      created_at: new Date().toISOString(),
+      user_id: '1'
+    },
+    {
+      id: '2',
+      title: 'Quantum Computing Fundamentals',
+      description: 'Explore the basics of quantum computing and its potential applications.',
+      instructor: 'Prof. Sarah Lin',
+      instructorAvatar: 'https://picsum.photos/id/141/100/100',
+      duration: '15 hours',
+      level: 'Intermediate',
+      category: 'Computer Science',
+      image: 'https://picsum.photos/id/116/600/400',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      user_id: '2'
+    }
   ]
 };
 
@@ -246,9 +274,40 @@ class ApiService {
             
             mockData.content.unshift(newContent);
             resolve(newContent as T);
+          } else if (endpoint.includes('/content') && options.method === 'DELETE') {
+            // 删除内容
+            const contentId = endpoint.split('/').pop();
+            if (contentId) {
+              const initialLength = mockData.content.length;
+              mockData.content = mockData.content.filter(item => item.id !== contentId);
+              if (mockData.content.length < initialLength) {
+                resolve({ success: true, message: '内容删除成功' } as T);
+              } else {
+                reject(new Error('内容不存在'));
+              }
+            } else {
+              reject(new Error('无效的内容ID'));
+            }
           } else if (endpoint.includes('/content')) {
             // 获取内容
             resolve(mockData.content as T);
+          } else if (endpoint.includes('/courses') && options.method === 'DELETE') {
+            // 删除课程
+            const courseId = endpoint.split('/').pop();
+            if (courseId) {
+              const initialLength = mockData.courses.length;
+              mockData.courses = mockData.courses.filter(item => item.id !== courseId);
+              if (mockData.courses.length < initialLength) {
+                resolve({ success: true, message: '课程删除成功' } as T);
+              } else {
+                reject(new Error('课程不存在'));
+              }
+            } else {
+              reject(new Error('无效的课程ID'));
+            }
+          } else if (endpoint.includes('/courses')) {
+            // 获取课程
+            resolve(mockData.courses as T);
           } else {
             // 默认返回空对象
             resolve({} as T);
@@ -334,6 +393,12 @@ class ApiService {
 
   async addFriend(email: string) {
     if (USE_MOCK_DATA) {
+      // 检查好友是否已存在
+      const existingFriend = mockData.friends.find(friend => friend.name === email.split('@')[0]);
+      if (existingFriend) {
+        return Promise.resolve(existingFriend);
+      }
+      
       const newFriend = {
         id: Date.now().toString(),
         name: email.split('@')[0],
@@ -342,7 +407,26 @@ class ApiService {
         lastMessageTime: new Date().toISOString(),
         isOnline: true
       };
+      
+      // 添加到好友列表
       mockData.friends.push(newFriend);
+      
+      // 创建一个初始消息，模拟好友请求被接受
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+      
+      const welcomeMessage = {
+        id: Date.now().toString(),
+        senderId: newFriend.id,
+        senderName: newFriend.name,
+        senderAvatar: newFriend.avatar,
+        content: `Hi! I'm ${newFriend.name}. Nice to meet you!`,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      
+      mockData.messages.push(welcomeMessage);
+      
       return Promise.resolve(newFriend);
     }
     return this.request('/friends/add', {
@@ -409,6 +493,12 @@ class ApiService {
     return this.request('/content', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async deleteContent(contentId: string) {
+    return this.request(`/content/${contentId}`, {
+      method: 'DELETE',
     });
   }
 
