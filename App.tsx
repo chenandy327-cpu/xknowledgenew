@@ -55,11 +55,6 @@ const App: React.FC = () => {
         setIsLoggedIn(true);
         // Also check admin status
         await checkAdminStatus();
-      } else {
-        setIsLoggedIn(false);
-        setIsAdmin(false);
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('isAdmin');
       }
     };
     
