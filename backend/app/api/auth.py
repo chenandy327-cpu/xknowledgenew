@@ -24,6 +24,7 @@ async def login(request: LoginRequest):
             "email": request.email,
             "name": "Test User",
             "avatar": "https://picsum.photos/id/100/100/100",
+            "role": "user",  # Default role
             "password": get_password_hash("password")
         }
     else:
@@ -33,10 +34,13 @@ async def login(request: LoginRequest):
     if not verify_password(request.password, mock_user.get("password", "password")):
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     
+    # Determine if user is admin (for demo purposes, hardcode admin email)
+    is_admin = mock_user["email"] == "admin@example.com"  # Demo admin account
+    
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": mock_user["id"]},
+        data={"sub": mock_user["id"], "role": "admin" if is_admin else "user"},
         expires_delta=access_token_expires
     )
     
@@ -144,3 +148,20 @@ async def reset_password(token: str, new_password: str):
         pass
     
     return {"message": "Password reset successfully"}
+
+@router.get("/user-role")
+async def get_user_role(token: str = oauth2_scheme):
+    # Verify the token
+    from jose import JWTError, jwt
+    
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        user_role: str = payload.get("role", "user")
+        
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return {"role": user_role, "user_id": user_id}

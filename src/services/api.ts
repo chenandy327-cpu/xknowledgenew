@@ -704,6 +704,17 @@ class ApiService {
       body: JSON.stringify({ agent_category: agentCategory, user_message: userMessage, conversation_history: conversationHistory }),
     });
   }
+
+  // Admin API
+  async getUserRole() {
+    if (USE_MOCK_DATA) {
+      // 在模拟模式下，我们可以根据邮箱判断是否为管理员
+      const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+      const isAdmin = currentUserEmail === 'admin@example.com';
+      return Promise.resolve({ role: isAdmin ? 'admin' : 'user', user_id: '1' });
+    }
+    return this.request('/auth/user-role');
+  }
 }
 
 export const api = new ApiService();

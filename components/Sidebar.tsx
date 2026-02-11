@@ -8,7 +8,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onOpenCreate }) => {
-  const { toggleTheme, theme } = useApp();
+  const { toggleTheme, theme, isAdmin } = useApp();
 
   const navItems = [
     { to: '/', icon: 'explore', label: '发现' },
@@ -17,6 +17,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenCreate }) => {
     { to: '/courses', icon: 'school', label: '课程' },
     { to: '/messages', icon: 'chat_bubble', label: '消息' },
     { to: '/profile', icon: 'person', label: '个人' },
+  ];
+
+  const adminNavItems = [
+    { to: '/admin', icon: 'admin_panel_settings', label: '管理后台' },
   ];
 
   return (
@@ -30,6 +34,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenCreate }) => {
 
       <nav className="flex-1 px-3 lg:px-4 space-y-2 overflow-y-auto no-scrollbar">
         {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex items-center justify-center lg:justify-start gap-4 px-4 py-3 rounded-xl transition-all group ${
+                isActive
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                  : 'text-slate-500 hover:bg-primary/5 hover:text-primary'
+              }`
+            }
+          >
+            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="hidden lg:block font-medium">{item.label}</span>
+          </NavLink>
+        ))}
+        {isAdmin && adminNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

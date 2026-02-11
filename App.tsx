@@ -9,15 +9,19 @@ import LocalPage from './pages/LocalPage';
 import CoursePage from './pages/CoursePage';
 import MessagePage from './pages/MessagePage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
 import CreateModal from './components/CreateModal';
 import { AppTheme } from './types';
+import { api } from './src/services/api';
 
 interface AppContextType {
   theme: AppTheme;
   toggleTheme: () => void;
   isLoggedIn: boolean;
+  isAdmin: boolean;
   login: () => void;
   logout: () => void;
+  checkAdminStatus: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -41,24 +45,28 @@ const App: React.FC = () => {
     return savedLoginStatus === 'true' && !!token;
   });
   
-  // Check token validity on initial load
+  // Check token validity and admin status on initial load
   useEffect(() => {
-    const checkTokenValidity = () => {
+    const checkAuthStatus = async () => {
       const token = localStorage.getItem('token');
       if (token) {
         // Here you would typically verify the token with the backend
         // For now, we'll just check if it exists
         setIsLoggedIn(true);
+        // Also check admin status
+        await checkAdminStatus();
       } else {
         setIsLoggedIn(false);
+        setIsAdmin(false);
         localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('isAdmin');
       }
     };
     
-    checkTokenValidity();
+    checkAuthStatus();
     
     // Set up periodic token check (every 5 minutes)
-    const interval = setInterval(checkTokenValidity, 5 * 60 * 1000);
+    const interval = setInterval(checkAuthStatus, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
@@ -78,22 +86,48 @@ const App: React.FC = () => {
     localStorage.setItem('theme', newTheme);
   };
 
+  const [isAdmin, setIsAdmin] = useState(() => {
+    const savedAdminStatus = localStorage.getItem('isAdmin');
+    return savedAdminStatus === 'true';
+  });
+
   const login = () => {
     setIsLoggedIn(true);
     // Save login status to localStorage
     localStorage.setItem('isLoggedIn', 'true');
+    // Check admin status after login
+    checkAdminStatus();
   };
 
   const logout = () => {
     setIsLoggedIn(false);
+    setIsAdmin(false);
     // Remove login status from localStorage
     localStorage.removeItem('isLoggedIn');
+    // Remove admin status from localStorage
+    localStorage.removeItem('isAdmin');
     // Remove token from localStorage
     localStorage.removeItem('token');
   };
 
+  const checkAdminStatus = async () => {
+    // Make an API call to check the user's role
+    try {
+      const response: any = await api.getUserRole();
+      const userRole = response.role;
+      const isAdminUser = userRole === 'admin';
+      setIsAdmin(isAdminUser);
+      localStorage.setItem('isAdmin', isAdminUser.toString());
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      // If there's an error, default to non-admin
+      setIsAdmin(false);
+      localStorage.setItem('isAdmin', 'false');
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ theme, toggleTheme, isLoggedIn, login, logout }}>
+    <AppContext.Provider value={{ theme, toggleTheme, isLoggedIn, isAdmin, login, logout, checkAdminStatus }}>
       <HashRouter>
         <div className="flex min-h-screen">
           {isLoggedIn && <Sidebar onOpenCreate={() => setIsCreateModalOpen(true)} />}
@@ -112,6 +146,7 @@ const App: React.FC = () => {
                   <Route path="/courses" element={<CoursePage />} />
                   <Route path="/messages" element={<MessagePage />} />
                   <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/admin" element={<AdminPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </>
               )}
