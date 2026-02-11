@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@api';
+import { api } from '../src/services/api';
 
 interface PortfolioItem {
   id: string;
@@ -18,6 +18,7 @@ interface Checkin {
   mood: 'great' | 'good' | 'normal' | 'tired' | 'sad';
   content: string;
   streak: number;
+  images?: string[];
 }
 
 interface Activity {
@@ -110,6 +111,7 @@ const ProfilePage: React.FC = () => {
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{[key: string]: string}>({}); // 存储上传的文件URL
   const [uploadProgress, setUploadProgress] = useState<number>(0); // 上传进度
+  const [checkinImages, setCheckinImages] = useState<string[]>([]); // 存储打卡上传的图片URL
   const [newCheckin, setNewCheckin] = useState({
     mood: 'good' as 'great' | 'good' | 'normal' | 'tired' | 'sad',
     content: ''
@@ -123,6 +125,10 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isAddingSchedule, setIsAddingSchedule] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [newSchedule, setNewSchedule] = useState('');
+  const [schedules, setSchedules] = useState<{[key: string]: string[]}>({}); // 存储每日行程
 
   const categories = ['All', 'AI & UI', 'Philosophy', 'Design', 'Art'];
 
@@ -177,6 +183,102 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // 处理打卡图片上传
+  const handleCheckinImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newImages: string[] = [];
+      
+      // 限制最多上传3张图片
+      const maxImages = 3;
+      const filesToUpload = Array.from(files).slice(0, maxImages - checkinImages.length);
+      
+      filesToUpload.forEach((file) => {
+        // 检查文件大小
+        if (file.size > 5 * 1024 * 1024) { // 5MB 限制
+          alert('每张图片大小不能超过5MB');
+          return;
+        }
+        
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+          alert('只支持图片文件');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            const fileUrl = event.target.result as string;
+            newImages.push(fileUrl);
+            
+            // 当所有文件都读取完成后，更新状态
+            if (newImages.length === filesToUpload.length) {
+              setCheckinImages([...checkinImages, ...newImages]);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // 删除打卡图片
+  const removeCheckinImage = (index: number) => {
+    const updatedImages = [...checkinImages];
+    updatedImages.splice(index, 1);
+    setCheckinImages(updatedImages);
+  };
+
+  // 处理双击日历日期
+  const handleDateDoubleClick = (date: string) => {
+    setSelectedDate(date);
+    setNewSchedule('');
+    setIsAddingSchedule(true);
+  };
+
+  // 处理添加行程
+  const handleAddSchedule = () => {
+    if (selectedDate && newSchedule) {
+      setSchedules(prev => {
+        const updated = {...prev};
+        if (!updated[selectedDate]) {
+          updated[selectedDate] = [];
+        }
+        updated[selectedDate].push(newSchedule);
+        return updated;
+      });
+      setIsAddingSchedule(false);
+      setSelectedDate('');
+      setNewSchedule('');
+      // 保存到本地存储
+      localStorage.setItem('schedules', JSON.stringify({...schedules, [selectedDate]: [...(schedules[selectedDate] || []), newSchedule]}));
+    }
+  };
+
+  // 处理删除行程
+  const handleDeleteSchedule = (date: string, index: number) => {
+    setSchedules(prev => {
+      const updated = {...prev};
+      if (updated[date]) {
+        updated[date] = updated[date].filter((_, i) => i !== index);
+        if (updated[date].length === 0) {
+          delete updated[date];
+        }
+      }
+      return updated;
+    });
+    // 保存到本地存储
+    const updatedSchedules = {...schedules};
+    if (updatedSchedules[date]) {
+      updatedSchedules[date] = updatedSchedules[date].filter((_, i) => i !== index);
+      if (updatedSchedules[date].length === 0) {
+        delete updatedSchedules[date];
+      }
+    }
+    localStorage.setItem('schedules', JSON.stringify(updatedSchedules));
+  };
+
   // 处理添加作品集
   const handleAddItem = () => {
     if (newItem.title && newItem.content) {
@@ -220,11 +322,13 @@ const ProfilePage: React.FC = () => {
         date: today,
         mood: newCheckin.mood,
         content: newCheckin.content,
-        streak
+        streak,
+        images: checkinImages.length > 0 ? checkinImages : undefined
       };
       setCheckins([checkin, ...checkins.filter(c => c.date !== today)]);
       setIsCheckingIn(false);
       setNewCheckin({ mood: 'good', content: '' });
+      setCheckinImages([]);
       // 添加到动态
       addActivity('checkin', `连续打卡 ${streak} 天！`);
       // 保存到本地存储
@@ -290,6 +394,7 @@ const ProfilePage: React.FC = () => {
     const savedCheckins = localStorage.getItem('checkins');
     const savedActivities = localStorage.getItem('activities');
     const savedProfileData = localStorage.getItem('profileData');
+    const savedSchedules = localStorage.getItem('schedules');
     
     if (savedPortfolio) {
       setPortfolio(JSON.parse(savedPortfolio));
@@ -302,6 +407,9 @@ const ProfilePage: React.FC = () => {
     }
     if (savedProfileData) {
       setProfileData(JSON.parse(savedProfileData));
+    }
+    if (savedSchedules) {
+      setSchedules(JSON.parse(savedSchedules));
     }
   }, []);
 
@@ -427,7 +535,18 @@ const ProfilePage: React.FC = () => {
             {filteredPortfolio.map((item) => (
               <div key={item.id} className="group bg-white dark:bg-zinc-900 rounded-[3rem] overflow-hidden border border-primary/5 hover:shadow-2xl transition-all flex flex-col relative">
                 <div className="h-64 overflow-hidden relative">
-                  <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src={item.cover} alt={item.title} />
+                  {item.type === 'video' ? (
+                    <video 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      src={item.cover}
+                      alt={item.title}
+                      controls
+                      muted
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" src={item.cover} alt={item.title} />
+                  )}
                   <div className="absolute top-6 left-6 flex gap-2">
                     <span className="bg-white/90 dark:bg-zinc-800/90 text-primary text-[10px] font-black px-4 py-1.5 rounded-full uppercase shadow-xl">{item.category}</span>
                     <span className="bg-primary text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase shadow-xl flex items-center gap-1">
@@ -526,10 +645,18 @@ const ProfilePage: React.FC = () => {
               ))}
               {recentDates.map((date, index) => {
                 const checkin = checkins.find(c => c.date === date);
+                const hasSchedule = schedules[date] && schedules[date].length > 0;
                 return (
                   <div key={date} className="text-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto ${checkin ? 'bg-primary text-white font-bold' : 'bg-slate-100 dark:bg-zinc-800 text-slate-400'}`}>
+                    <div 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center mx-auto cursor-pointer transition-all ${checkin ? 'bg-primary text-white font-bold' : hasSchedule ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold' : 'bg-slate-100 dark:bg-zinc-800 text-slate-400'}`}
+                      onDoubleClick={() => handleDateDoubleClick(date)}
+                      title="双击添加行程"
+                    >
                       {new Date(date).getDate()}
+                      {hasSchedule && (
+                        <div className="absolute w-2 h-2 bg-blue-500 rounded-full -bottom-1"></div>
+                      )}
                     </div>
                   </div>
                 );
@@ -552,7 +679,41 @@ const ProfilePage: React.FC = () => {
                         <h4 className="font-bold">{checkin.date}</h4>
                         <span className="text-xs font-bold text-slate-400">连续 {checkin.streak} 天</span>
                       </div>
-                      <p className="text-slate-500">{checkin.content}</p>
+                      <p className="text-slate-500 mb-4">{checkin.content}</p>
+                      {checkin.images && checkin.images.length > 0 && (
+                        <div className="flex gap-3 mt-4">
+                          {checkin.images.map((image, index) => (
+                            <div key={index} className="w-20 h-20">
+                              <img 
+                                src={image} 
+                                alt={`Checkin image ${index + 1}`} 
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 显示当天行程 */}
+                      {schedules[checkin.date] && schedules[checkin.date].length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800">
+                          <h5 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">当日行程</h5>
+                          <div className="space-y-2">
+                            {schedules[checkin.date].map((schedule, index) => (
+                              <div key={index} className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                <span className="material-symbols-outlined text-xs text-blue-500">event_note</span>
+                                <span>{schedule}</span>
+                                <button 
+                                  onClick={() => handleDeleteSchedule(checkin.date, index)}
+                                  className="ml-auto text-red-500 hover:text-red-700 transition-colors"
+                                  title="删除行程"
+                                >
+                                  <span className="material-symbols-outlined text-xs">delete</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -773,6 +934,43 @@ const ProfilePage: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">添加图片 (最多3张)</label>
+                {checkinImages.length > 0 && (
+                  <div className="flex gap-4 mb-4">
+                    {checkinImages.map((image, index) => (
+                      <div key={index} className="relative w-24 h-24">
+                        <img 
+                          src={image} 
+                          alt={`Checkin image ${index + 1}`} 
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <button 
+                          onClick={() => removeCheckinImage(index)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-xs">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {checkinImages.length < 3 && (
+                  <label className="block border-2 border-dashed border-primary/30 rounded-2xl p-6 text-center cursor-pointer hover:border-primary transition-all">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      multiple
+                      className="hidden"
+                      onChange={handleCheckinImageUpload}
+                    />
+                    <span className="material-symbols-outlined text-3xl text-primary/50 mb-2">upload_file</span>
+                    <p className="text-sm font-bold text-slate-500">点击或拖拽上传图片</p>
+                    <p className="text-xs text-slate-400 mt-1">支持 JPG、PNG 格式，每张最大 5MB</p>
+                  </label>
+                )}
+              </div>
+
               <div className="flex gap-6 pt-6">
                 <button onClick={() => setIsCheckingIn(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
                 <button onClick={handleCheckin} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">确认打卡</button>
@@ -803,6 +1001,44 @@ const ProfilePage: React.FC = () => {
               <div className="flex gap-6 pt-6">
                 <button onClick={() => setIsPosting(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
                 <button onClick={handlePost} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">发布</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Schedule Modal */}
+      {isAddingSchedule && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-6 bg-black/60 backdrop-blur-xl animate-in zoom-in-95 duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[3rem] p-12 shadow-2xl border border-primary/20 max-h-[90vh] overflow-y-auto no-scrollbar">
+            <h2 className="text-3xl font-black mb-10 tracking-tighter">添加行程</h2>
+            
+            <div className="space-y-8">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">日期</label>
+                <input 
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  disabled
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">行程内容</label>
+                <input 
+                  autoFocus
+                  className="w-full px-6 py-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border-none focus:ring-2 focus:ring-primary/50 text-sm font-bold"
+                  placeholder="输入行程内容..."
+                  value={newSchedule}
+                  onChange={(e) => setNewSchedule(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-6 pt-6">
+                <button onClick={() => setIsAddingSchedule(false)} className="flex-1 py-5 text-slate-400 font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
+                <button onClick={handleAddSchedule} className="flex-1 py-5 bg-primary text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-primary/30 hover:scale-105 transition-all">确认添加</button>
               </div>
             </div>
           </div>

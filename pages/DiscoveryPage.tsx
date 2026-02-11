@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@api';
+import { api } from '../src/services/api';
 
 // 帖子数据类型
 interface Post {

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useApp } from '../App';
-import { api } from '@api';
+import { api } from '../src/services/api';
 
 const LoginPage: React.FC = () => {
   const { login } = useApp();

@@ -152,6 +152,21 @@ const LocalPage: React.FC = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
 
+  // 地址相关状态
+  const [currentLocation, setCurrentLocation] = useState('上海 · 徐汇');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locations] = useState([
+    '上海 · 徐汇',
+    '上海 · 黄浦',
+    '上海 · 静安',
+    '北京 · 朝阳',
+    '北京 · 海淀',
+    '广州 · 天河',
+    '广州 · 越秀',
+    '深圳 · 南山',
+    '深圳 · 福田'
+  ]);
+
   const handleInviteUser = () => {
     if (inviteEmail && selectedProject) {
       // 模拟邀请成功
@@ -228,8 +243,9 @@ const LocalPage: React.FC = () => {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <div className="bg-primary/10 px-6 py-2 rounded-full flex items-center gap-3 text-sm text-primary font-bold border border-primary/20">
-            <span className="material-symbols-outlined text-lg fill-1">location_on</span> 上海 · 徐汇
+          <div className="bg-primary/10 px-6 py-2 rounded-full flex items-center gap-3 text-sm text-primary font-bold border border-primary/20 cursor-pointer hover:bg-primary/20 transition-all" onClick={() => setShowLocationModal(true)}>
+            <span className="material-symbols-outlined text-lg fill-1">location_on</span> {currentLocation}
+            <span className="material-symbols-outlined text-sm">expand_more</span>
           </div>
         </div>
       </header>
@@ -534,6 +550,32 @@ const LocalPage: React.FC = () => {
                 <button onClick={() => setShowInviteModal(false)} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
                 <button onClick={handleInviteUser} className="flex-1 py-4 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/20">发送邀请</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Selection Modal */}
+      {showLocationModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[2.5rem] p-10 shadow-2xl border border-primary/20">
+            <h3 className="text-2xl font-black mb-8">选择城市</h3>
+            <div className="space-y-4">
+              {locations.map((location, index) => (
+                <button 
+                  key={index}
+                  onClick={() => {
+                    setCurrentLocation(location);
+                    setShowLocationModal(false);
+                  }}
+                  className={`w-full text-left px-6 py-4 rounded-2xl font-bold transition-all ${currentLocation === location ? 'bg-primary text-white' : 'bg-slate-50 dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700'}`}
+                >
+                  {location}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-4 pt-8">
+              <button onClick={() => setShowLocationModal(false)} className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-2xl transition-all">取消</button>
             </div>
           </div>
         </div>

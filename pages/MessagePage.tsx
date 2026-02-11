@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { api } from '@api';
+import { api } from '../src/services/api';
 
 interface Contact {
   id: string;
@@ -239,51 +239,88 @@ const MessagePage: React.FC = () => {
         console.warn('发送消息失败，使用本地存储:', error);
       }
 
-      // 模拟对方回复
-      setTimeout(() => {
-        // 检查是否是智能体联系人
+      // 智能体回复
+      if (activeContact) {
         const isAgent = contacts.find(c => c.id === activeContact)?.type === 'agent';
-        let replyContent = '收到你的消息，我会尽快回复。';
-        
-        // 根据智能体类型生成不同的回复
         if (isAgent) {
           const agent = contacts.find(c => c.id === activeContact);
-          switch (agent?.agentCategory) {
-            case '学习':
-              replyContent = '我可以帮你解答学习问题，提供学习资源和制定学习计划。你最近在学习什么？';
-              break;
-            case '技术':
-              replyContent = '作为技术顾问，我可以帮你解决编程问题、技术选型和系统设计。你遇到了什么技术难题？';
-              break;
-            case '创意':
-              replyContent = '我可以帮你 brainstorm 创意，提供设计灵感和创意方向。你在寻找什么类型的创意支持？';
-              break;
-            case '职业':
-              replyContent = '我可以帮你进行职业规划，提供简历建议和面试技巧。你对自己的职业有什么疑问？';
-              break;
-            default:
-              replyContent = '我是你的智能助手，有什么可以帮助你的？';
+          if (agent?.agentCategory) {
+            // 获取历史消息作为上下文
+            const historyMessages = messages.filter(msg => msg.contactId === activeContact)
+              .map(msg => `${msg.sender === 'me' ? '用户' : '智能体'}: ${msg.content}`);
+            
+            try {
+              // 调用API获取智能体回复
+              const replyContent = await api.getAgentResponse(
+                agent.agentCategory,
+                inputMessage,
+                historyMessages
+              );
+              
+              const replyMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                contactId: activeContact,
+                sender: 'other',
+                content: replyContent,
+                time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+                status: 'delivered'
+              };
+              setMessages(prevMessages => [...prevMessages, replyMessage]);
+              // 更新联系人的最后一条消息
+              setContacts(prevContacts => prevContacts.map(contact => 
+                contact.id === activeContact ? {
+                  ...contact,
+                  lastMessage: replyMessage.content,
+                  lastMessageTime: replyMessage.time
+                } : contact
+              ));
+            } catch (error) {
+              console.error('获取智能体回复失败:', error);
+              // 失败时使用默认回复
+              const defaultReply = '抱歉，我暂时无法回复你的消息，请稍后再试。';
+              const replyMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                contactId: activeContact,
+                sender: 'other',
+                content: defaultReply,
+                time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+                status: 'delivered'
+              };
+              setMessages(prevMessages => [...prevMessages, replyMessage]);
+              // 更新联系人的最后一条消息
+              setContacts(prevContacts => prevContacts.map(contact => 
+                contact.id === activeContact ? {
+                  ...contact,
+                  lastMessage: replyMessage.content,
+                  lastMessageTime: replyMessage.time
+                } : contact
+              ));
+            }
           }
+        } else {
+          // 普通用户回复
+          setTimeout(() => {
+            const replyContent = '收到你的消息，我会尽快回复。';
+            const replyMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              contactId: activeContact,
+              sender: 'other',
+              content: replyContent,
+              time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+              status: 'delivered'
+            };
+            setMessages(prevMessages => [...prevMessages, replyMessage]);
+            // 更新联系人的最后一条消息
+            setContacts(prevMessages => prevMessages.map(contact => 
+              contact.id === activeContact ? {
+                ...contact,
+                lastMessage: replyMessage.content,
+                lastMessageTime: replyMessage.time
+              } : contact
+            ));
+          }, 1000);
         }
-        
-        const replyMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          contactId: activeContact,
-          sender: 'other',
-          content: replyContent,
-          time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-          status: 'delivered'
-        };
-        setMessages(prevMessages => [...prevMessages, replyMessage]);
-        // 更新联系人的最后一条消息
-        setContacts(prevContacts => prevContacts.map(contact => 
-          contact.id === activeContact ? {
-            ...contact,
-            lastMessage: replyMessage.content,
-            lastMessageTime: replyMessage.time
-          } : contact
-        ));
-      }, 1000);
+      }
     }
   };
 
