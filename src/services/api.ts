@@ -164,93 +164,97 @@ class ApiService {
 
   // 获取模拟数据
   private getMockData<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (endpoint.includes('/auth/login')) {
-          const body = JSON.parse(options.body as string);
-          const user = mockData.users[body.email];
-          if (user && user.password === body.password) {
+        try {
+          if (endpoint.includes('/auth/login')) {
+            const body = JSON.parse(options.body as string);
+            const user = mockData.users[body.email];
+            if (user && user.password === body.password) {
+              resolve({
+                access_token: mockData.tokens[body.email],
+                user_id: user.user_id,
+                email: user.email,
+                name: user.name
+              } as T);
+            } else {
+              reject(new Error('Invalid credentials'));
+            }
+          } else if (endpoint.includes('/auth/register')) {
+            const body = JSON.parse(options.body as string);
+            // 检查邮箱是否已存在
+            if (mockData.users[body.email]) {
+              reject(new Error('Email already exists'));
+            }
+            const newUser = {
+              user_id: Date.now().toString(),
+              email: body.email,
+              name: body.name,
+              avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
+              password: body.password
+            };
+            mockData.users[body.email] = newUser;
+            mockData.tokens[body.email] = `mock-token-${Date.now()}`;
             resolve({
               access_token: mockData.tokens[body.email],
-              user_id: user.user_id,
-              email: user.email,
-              name: user.name
+              user_id: newUser.user_id,
+              email: newUser.email,
+              name: newUser.name
             } as T);
+          } else if (endpoint.includes('/users/me')) {
+            // 从token中获取当前用户
+            const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+            if (currentUserEmail) {
+              const user = mockData.users[currentUserEmail];
+              resolve({
+                user_id: user.user_id,
+                email: user.email,
+                name: user.name,
+                avatar: user.avatar
+              } as T);
+            } else {
+              // 默认用户
+              resolve({
+                user_id: '1',
+                email: 'explorer@knowledge.art',
+                name: 'Knowledge Explorer',
+                avatar: 'https://picsum.photos/id/1005/100/100'
+              } as T);
+            }
+          } else if (endpoint.includes('/content/hotspots')) {
+            resolve(mockData.hotspots as T);
+          } else if (endpoint.includes('/content/hot-chats')) {
+            resolve(mockData.hotChats as T);
+          } else if (endpoint.includes('/content') && options.method === 'POST') {
+            // 创建内容
+            const body = JSON.parse(options.body as string);
+            const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
+            const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
+            
+            const newContent = {
+              id: Date.now().toString(),
+              title: body.title,
+              content: body.description || '',
+              author: currentUser.name,
+              authorAvatar: currentUser.avatar,
+              views: '0',
+              category: body.category || 'Knowledge',
+              image: body.cover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
+              created_at: new Date().toISOString(),
+              user_id: currentUser.user_id
+            };
+            
+            mockData.content.unshift(newContent);
+            resolve(newContent as T);
+          } else if (endpoint.includes('/content')) {
+            // 获取内容
+            resolve(mockData.content as T);
           } else {
-            throw new Error('Invalid credentials');
+            // 默认返回空对象
+            resolve({} as T);
           }
-        } else if (endpoint.includes('/auth/register')) {
-          const body = JSON.parse(options.body as string);
-          // 检查邮箱是否已存在
-          if (mockData.users[body.email]) {
-            throw new Error('Email already exists');
-          }
-          const newUser = {
-            user_id: Date.now().toString(),
-            email: body.email,
-            name: body.name,
-            avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
-            password: body.password
-          };
-          mockData.users[body.email] = newUser;
-          mockData.tokens[body.email] = `mock-token-${Date.now()}`;
-          resolve({
-            access_token: mockData.tokens[body.email],
-            user_id: newUser.user_id,
-            email: newUser.email,
-            name: newUser.name
-          } as T);
-        } else if (endpoint.includes('/users/me')) {
-          // 从token中获取当前用户
-          const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
-          if (currentUserEmail) {
-            const user = mockData.users[currentUserEmail];
-            resolve({
-              user_id: user.user_id,
-              email: user.email,
-              name: user.name,
-              avatar: user.avatar
-            } as T);
-          } else {
-            // 默认用户
-            resolve({
-              user_id: '1',
-              email: 'explorer@knowledge.art',
-              name: 'Knowledge Explorer',
-              avatar: 'https://picsum.photos/id/1005/100/100'
-            } as T);
-          }
-        } else if (endpoint.includes('/content/hotspots')) {
-          resolve(mockData.hotspots as T);
-        } else if (endpoint.includes('/content/hot-chats')) {
-          resolve(mockData.hotChats as T);
-        } else if (endpoint.includes('/content') && options.method === 'POST') {
-          // 创建内容
-          const body = JSON.parse(options.body as string);
-          const currentUserEmail = Object.keys(mockData.tokens).find(email => mockData.tokens[email] === this.getToken());
-          const currentUser = currentUserEmail ? mockData.users[currentUserEmail] : mockData.users['explorer@knowledge.art'];
-          
-          const newContent = {
-            id: Date.now().toString(),
-            title: body.title,
-            content: body.description || '',
-            author: currentUser.name,
-            authorAvatar: currentUser.avatar,
-            views: '0',
-            category: body.category || 'Knowledge',
-            image: body.cover || `https://picsum.photos/id/${Math.floor(Math.random() * 300)}/600/400`,
-            created_at: new Date().toISOString(),
-            user_id: currentUser.user_id
-          };
-          
-          mockData.content.unshift(newContent);
-          resolve(newContent as T);
-        } else if (endpoint.includes('/content')) {
-          // 获取内容
-          resolve(mockData.content as T);
-        } else {
-          // 默认返回空对象
-          resolve({} as T);
+        } catch (error) {
+          reject(error);
         }
       }, 300); // 模拟网络延迟
     });
