@@ -17,10 +17,18 @@ const mockData = {
       name: 'Knowledge Explorer',
       avatar: 'https://picsum.photos/id/1005/100/100',
       password: 'password'
+    },
+    'admin@example.com': {
+      user_id: '2',
+      email: 'admin@example.com',
+      name: 'Admin User',
+      avatar: 'https://picsum.photos/id/100/100/100',
+      password: 'password'
     }
   },
   tokens: {
-    'explorer@knowledge.art': 'mock-token-12345'
+    'explorer@knowledge.art': 'mock-token-12345',
+    'admin@example.com': 'mock-token-admin-12345'
   },
   messages: [
     {
