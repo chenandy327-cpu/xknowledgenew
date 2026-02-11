@@ -1,11 +1,81 @@
 // API Service for x² Knowledge Nebula
 
 const API_BASE_URL = 'http://localhost:8000/api';
+const USE_MOCK_DATA = true; // 使用模拟数据，无需后端服务
 
 interface ApiResponse<T> {
   data: T;
   error?: string;
 }
+
+// 模拟数据
+const mockData = {
+  users: {
+    'explorer@knowledge.art': {
+      user_id: '1',
+      email: 'explorer@knowledge.art',
+      name: 'Knowledge Explorer',
+      avatar: 'https://picsum.photos/id/1005/100/100',
+      password: 'password'
+    }
+  },
+  tokens: {
+    'explorer@knowledge.art': 'mock-token-12345'
+  },
+  messages: [
+    {
+      id: '1',
+      senderId: '2',
+      senderName: 'Alice Chen',
+      senderAvatar: 'https://picsum.photos/id/1012/100/100',
+      content: '你好！欢迎加入知识星云社区！',
+      timestamp: new Date().toISOString(),
+      isRead: false
+    },
+    {
+      id: '2',
+      senderId: '3',
+      senderName: 'Bob Wang',
+      senderAvatar: 'https://picsum.photos/id/1025/100/100',
+      content: '嗨，最近在学习什么新技术？',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      isRead: true
+    }
+  ],
+  friends: [
+    {
+      id: '2',
+      name: 'Alice Chen',
+      avatar: 'https://picsum.photos/id/1012/100/100',
+      lastMessage: '你好！欢迎加入知识星云社区！',
+      lastMessageTime: new Date().toISOString(),
+      isOnline: true
+    },
+    {
+      id: '3',
+      name: 'Bob Wang',
+      avatar: 'https://picsum.photos/id/1025/100/100',
+      lastMessage: '嗨，最近在学习什么新技术？',
+      lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
+      isOnline: false
+    }
+  ],
+  hotspots: [
+    { name: '量子计算', top: '25%', left: '30%', color: '#a855f7' },
+    { name: '生成式AI', top: '45%', left: '60%', color: '#7f13ec' },
+    { name: '神经网络', top: '65%', left: '35%', color: '#3b82f6' },
+    { name: '艺术哲学', top: '15%', left: '55%', color: '#ec4899' },
+    { name: '数字孪生', top: '75%', left: '55%', color: '#3b82f6' },
+    { name: '脑机接口', top: '35%', left: '15%', color: '#f59e0b' },
+  ],
+  hotChats: [
+    { id: 1, topic: 'DeepSeek-R1 的推理逻辑', count: '1.2w', trend: 'up' },
+    { id: 2, topic: '碳基与硅基生命的边界', count: '8.4k', trend: 'up' },
+    { id: 3, topic: '空间计算中的交互革命', count: '6.2k', trend: 'steady' },
+    { id: 4, topic: '从原子到比特：物质数字化', count: '4.8k', trend: 'up' },
+    { id: 5, topic: '后人类主义下的艺术创作', count: '3.1k', trend: 'new' },
+  ]
+};
 
 class ApiService {
   private token: string | null = null;
@@ -23,28 +93,92 @@ class ApiService {
   }
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (this.getToken()) {
-      headers['Authorization'] = `Bearer ${this.getToken()}`;
+    if (USE_MOCK_DATA) {
+      // 返回模拟数据
+      return this.getMockData<T>(endpoint, options);
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
+    try {
+      const url = `${API_BASE_URL}${endpoint}`;
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      };
+
+      if (this.getToken()) {
+        headers['Authorization'] = `Bearer ${this.getToken()}`;
+      }
+
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API Error: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.warn('API调用失败，使用模拟数据:', error);
+      // API调用失败时使用模拟数据
+      return this.getMockData<T>(endpoint, options);
+    }
+  }
+
+  // 获取模拟数据
+  private getMockData<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (endpoint.includes('/auth/login')) {
+          const body = JSON.parse(options.body as string);
+          const user = mockData.users[body.email];
+          if (user && user.password === body.password) {
+            resolve({
+              access_token: mockData.tokens[body.email],
+              user_id: user.user_id,
+              email: user.email,
+              name: user.name
+            } as T);
+          } else {
+            throw new Error('Invalid credentials');
+          }
+        } else if (endpoint.includes('/auth/register')) {
+          const body = JSON.parse(options.body as string);
+          const newUser = {
+            user_id: Date.now().toString(),
+            email: body.email,
+            name: body.name,
+            avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
+            password: body.password
+          };
+          mockData.users[body.email] = newUser;
+          mockData.tokens[body.email] = `mock-token-${Date.now()}`;
+          resolve({
+            access_token: mockData.tokens[body.email],
+            user_id: newUser.user_id,
+            email: newUser.email,
+            name: newUser.name
+          } as T);
+        } else if (endpoint.includes('/users/me')) {
+          resolve({
+            user_id: '1',
+            email: 'explorer@knowledge.art',
+            name: 'Knowledge Explorer',
+            avatar: 'https://picsum.photos/id/1005/100/100'
+          } as T);
+        } else if (endpoint.includes('/content/hotspots')) {
+          resolve(mockData.hotspots as T);
+        } else if (endpoint.includes('/content/hot-chats')) {
+          resolve(mockData.hotChats as T);
+        } else {
+          // 默认返回空对象
+          resolve({} as T);
+        }
+      }, 300); // 模拟网络延迟
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `API Error: ${response.status}`);
-    }
-
-    return response.json();
   }
 
   // Auth API
@@ -77,6 +211,60 @@ class ApiService {
     localStorage.removeItem('token');
     return this.request('/auth/logout', {
       method: 'POST',
+    });
+  }
+
+  // Message API
+  async getMessages() {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve(mockData.messages);
+    }
+    return this.request('/messages');
+  }
+
+  async getFriends() {
+    if (USE_MOCK_DATA) {
+      return Promise.resolve(mockData.friends);
+    }
+    return this.request('/friends');
+  }
+
+  async sendMessage(friendId: string, content: string) {
+    if (USE_MOCK_DATA) {
+      const newMessage = {
+        id: Date.now().toString(),
+        senderId: '1',
+        senderName: 'Knowledge Explorer',
+        senderAvatar: 'https://picsum.photos/id/1005/100/100',
+        content,
+        timestamp: new Date().toISOString(),
+        isRead: false
+      };
+      mockData.messages.push(newMessage);
+      return Promise.resolve(newMessage);
+    }
+    return this.request('/messages/send', {
+      method: 'POST',
+      body: JSON.stringify({ friend_id: friendId, content }),
+    });
+  }
+
+  async addFriend(email: string) {
+    if (USE_MOCK_DATA) {
+      const newFriend = {
+        id: Date.now().toString(),
+        name: email.split('@')[0],
+        avatar: `https://picsum.photos/id/${Math.floor(Math.random() * 1000)}/100/100`,
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        isOnline: true
+      };
+      mockData.friends.push(newFriend);
+      return Promise.resolve(newFriend);
+    }
+    return this.request('/friends/add', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 
