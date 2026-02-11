@@ -11,6 +11,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,63 +95,125 @@ const LoginPage: React.FC = () => {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field (only for registration) */}
-            {!isLogin && (
+          {showForgotPassword ? (
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              setError('');
+              try {
+                await api.request('/auth/forgot-password', {
+                  method: 'POST',
+                  body: JSON.stringify({ email }),
+                });
+                alert('Password reset email sent!');
+                setShowForgotPassword(false);
+              } catch (err) {
+                setError('Failed to send password reset email. Please try again.');
+                console.error('Forgot password error:', err);
+              } finally {
+                setLoading(false);
+              }
+            }} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
                 <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                  placeholder="Your name"
+                  placeholder="explorer@knowledge.art"
                   required
                 />
               </div>
-            )}
+              {error && (
+                <div className="text-red-500 text-sm mt-2">{error}</div>
+              )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? 'Sending...' : 'Send Reset Email'} 
+                <span className="material-symbols-outlined text-base">mail</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full border border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-slate-300 py-4 rounded-lg font-bold text-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+              >
+                Back to Login
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Name Field (only for registration) */}
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                    placeholder="Your name"
+                    required
+                  />
+                </div>
+              )}
 
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="explorer@knowledge.art"
-                required
-              />
-            </div>
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  placeholder="explorer@knowledge.art"
+                  required
+                />
+              </div>
 
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+              {/* Password Field */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                  {isLogin && (
+                    <button 
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-4 rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="text-red-500 text-sm mt-2">{error}</div>
-            )}
+              {/* Error Message */}
+              {error && (
+                <div className="text-red-500 text-sm mt-2">{error}</div>
+              )}
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? (isLogin ? 'Logging in...' : 'Registering...') : (isLogin ? 'Launch Explorer' : 'Join the Orbit')} 
-              <span className="material-symbols-outlined text-base">{isLogin ? 'rocket_launch' : 'person_add'}</span>
-            </button>
-          </form>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl hover:shadow-primary/30 transition-all flex items-center justify-center gap-2"
+              >
+                {loading ? (isLogin ? 'Logging in...' : 'Registering...') : (isLogin ? 'Launch Explorer' : 'Join the Orbit')} 
+                <span className="material-symbols-outlined text-base">{isLogin ? 'rocket_launch' : 'person_add'}</span>
+              </button>
+            </form>
+          )}
 
           {/* Switch Between Login/Register */}
           <div className="mt-12 text-center">

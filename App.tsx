@@ -37,8 +37,31 @@ const App: React.FC = () => {
   
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const savedLoginStatus = localStorage.getItem('isLoggedIn');
-    return savedLoginStatus === 'true';
+    const token = localStorage.getItem('token');
+    return savedLoginStatus === 'true' && !!token;
   });
+  
+  // Check token validity on initial load
+  useEffect(() => {
+    const checkTokenValidity = () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Here you would typically verify the token with the backend
+        // For now, we'll just check if it exists
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+        localStorage.removeItem('isLoggedIn');
+      }
+    };
+    
+    checkTokenValidity();
+    
+    // Set up periodic token check (every 5 minutes)
+    const interval = setInterval(checkTokenValidity, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
